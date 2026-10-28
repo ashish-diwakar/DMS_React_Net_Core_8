@@ -1,6 +1,6 @@
 # F001 — Authentication Integration (.NET port)
 
-Status: Ready for Review
+Status: Complete
 
 ## Objective and authority
 
@@ -120,7 +120,7 @@ Complexity: Large. This is a cohesive authentication port with schema compatibil
 - [x] Registration remains unavailable server-side; no users are provisioned.
 - [x] Private development email works without logging tokens or exposing files over HTTP.
 - [x] Shared schema, roles, permissions, and Laravel sessions remain unchanged; tests use only the isolated database.
-- [ ] Relevant focused tests pass; implementation review, final validation, and completion approvals are recorded separately.
+- [x] Relevant focused tests pass; implementation review, final validation, and completion approvals are recorded separately.
 
 ## Analysis sources
 
@@ -178,6 +178,33 @@ The initial sandbox test-runner connection restriction and stopped MariaDB servi
 - Cookies are separate between applications. Laravel's existing sessions and pending reset links follow Laravel's rules; see the independently managed reset limitation above.
 - In-memory throttling is for a single process. Multi-instance coordination, production TLS/hosting/key provisioning, RBAC, and the real dashboard remain outside F001.
 - Node 24.1 emits its native TypeScript-stripping experimental warning during the two frontend tests; tests pass, and the production Vite build does not use that test-only loading path.
-- Implementation review: requested; pending user response.
-- Final validation: not started and not yet authorized. No full Laravel regression run or final completion claim.
-- Final completion: pending explicit user approval after final validation.
+- Implementation review: approved by the user instruction to use the new folder and proceed after the review report.
+- Final validation: passed after explicit authorization; relocation and final results are recorded below.
+- Final completion: explicitly approved by the user on 2026-10-28 after the final validation report.
+
+## Final validation and relocation — 2026-10-28
+
+Active project root: C:\Ashish\Projects\DiwakarEnterpriseCMS\DMS_React_Net_Core_8.
+The user moved the project into this standalone local repository and instructed the agent to use the new path and proceed. Historical references to react-dotnet-cms above describe the original implementation location. The completed foundation record and governance files were preserved.
+
+### Validation results
+
+- Locked .NET restore succeeded from the new folder. Release compilation succeeded with no source changes or new dependencies.
+- The first Release test run passed all four PHP/.NET compatibility cases, while 20 database-dependent cases could not connect because MariaDB was stopped. After starting the existing local XAMPP service, only AuthenticationTests were rerun: 20 passed, 0 failed/skipped. Final total: all 24 unique .NET tests passed across these runs.
+- npm run test:auth: 2 passed. The previously documented Node native TypeScript-stripping warning remains test-only.
+- npm run build: passed, including strict type checking and the Vite production bundle.
+- Relocated HTTP smoke checks passed: direct/proxied health HTTP 200 Healthy; guest current-user/admin endpoints HTTP 401; login HTML HTTP 200; backend private settings blocked by the Vite server.
+- Both development servers run from the new project root, using the normal private application configuration. No browser login, password reset, or other mutation was performed against shared application users during final validation.
+
+### Final reviews
+
+- Security/validation/authorization: reviewed cookie flags/lifetimes, password-stamp checks, server-side antiforgery on writes, parameterized SQL, conditional password writes, safe errors, rate limiting, token purpose/expiry/binding, return-path restrictions, output escaping, and private development mail. Existing tests cover the relevant positive and negative paths. No unresolved finding within the approved local F001 scope.
+- Database/migrations: no application migrations, schema changes, seeds, or shared-user writes. All test mutations remain guarded to dss_enterprise_cms_dotnet_test. Laravel sessions/reset-token records follow the previously approved independent lifecycle.
+- Dependencies/build artifacts: lockfiles unchanged; no extra dependency or upgrade. All 39 tracked files were inventoried; no tracked private settings, .local files, generated output, node_modules, or .env files. MSBuild content/source item checks exclude private settings/mail/keys/helpers.
+- Final source/diff/regression review: the moved repository started clean at the user's existing local commit. Existing implementation and foundation files were treated as protected work. Authentication source, tests, configuration, and relevant frontend code were reviewed against approved requirements. Only this specification and the README were changed during final validation. No debug statements, unexplained TODOs, raw HTML injection, permissive CORS, automatic migrations, accidental routes, or governance edits found.
+- PHP/Laravel tests and Pint were not run: the standalone .NET project contains no changed Laravel application code. PHP was used only for synthetic bcrypt compatibility fixtures. No architecture change or ADR was required beyond the approved F001 design.
+
+Functional acceptance: 12/12 functional criteria verified. The combined workflow criterion is satisfied following explicit final user approval; all 13 acceptance checklist items are satisfied.
+Known limitations remain unchanged: development email pickup only, independent Laravel sessions/reset links, single-process throttling, and production hosting/key/email setup deferred. The private mail/key defaults and test root discovery use the relocated content root automatically; no application path code change was required.
+
+Finalization status: Complete following explicit user approval on 2026-10-28. This completion update changes only the F001 specification, preserving the existing README and specification changes. No application changes, validation reruns, database operations, commits, or remote Git access were performed for this update. F002 analysis requires separate user permission.

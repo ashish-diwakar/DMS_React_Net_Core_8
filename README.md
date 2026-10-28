@@ -14,7 +14,7 @@ The current workspace has an ignored backend/appsettings.Local.json configured f
 
 The API maps existing users and never initializes, migrates, or seeds the application database. The local settings file and all backend/.local artifacts are excluded from Git and backend build/publish content.
 
-Run commands from this folder. Use two terminals:
+Active project root: C:\Ashish\Projects\DiwakarEnterpriseCMS\DMS_React_Net_Core_8. Run commands from this folder. Use two terminals:
 
 ```powershell
 # Terminal 1 — backend at http://127.0.0.1:5088
@@ -57,7 +57,7 @@ Ordinary authentication uses a browser-session cookie and a 120-minute ticket. R
 ## Focused authentication tests
 
 ```powershell
-# From react-dotnet-cms
+# From DMS_React_Net_Core_8
 dotnet test tests/Diwakar.Cms.Auth.Tests/Diwakar.Cms.Auth.Tests.csproj
 Set-Location frontend
 npm run test:auth
