@@ -1,0 +1,18 @@
+# Shared database boundaries
+
+The new application is intended to use the exact same database as Laravel, as requested by the user. Existing project documentation identifies MariaDB 10.4.32, exposed through Laravel's mysql connection. Live server version and schema have not been queried during foundation work.
+
+- Laravel migrations remain the authoritative schema history. The .NET application must map existing tables, column names, keys, relationships, and constraints. No automatic EF migrations, EnsureCreated, database resets, or startup seeding.
+- The completed foundation introduced no database access. The approved F001 port adds MySqlConnector and a focused user-store adapter; credentials are privately configured. It never creates application tables or runs migrations.
+- Configure the actual connection later using server-side environment variables or .NET user secrets. Do not copy Laravel's .env wholesale, expose credentials, or configure database access through VITE_ variables.
+- Existing users and password hashes must remain usable from Laravel. Verify the deployed hash format and cross-framework verification before implementing login or password changes. Do not silently replace existing hashes with the ASP.NET Identity default format.
+- Keep application sessions separate, including cookie names and protection keys. Do not read or write Laravel's serialized sessions as if they were ASP.NET sessions. Signing out of one application will not automatically sign out of the other unless separately designed and approved.
+- Approved F001 contract: .NET uses framework-protected application-specific links, separate from password_reset_tokens. Generating/consuming a .NET link never deletes/overwrites pending Laravel reset-token rows. .NET links bind to user ID, email, password-derived stamp, purpose, and 60-minute lifetime. One atomic conditional password update consumes the old stamp and prevents .NET reuse.
+- Password changes/reset update only password, remember_token, and updated_at. Verification conditionally updates email_verified_at and updated_at. These affect shared records. Rotating remember_token invalidates corresponding Laravel persistent remember-me credentials, but does not synchronize logout of existing Laravel sessions.
+- Outstanding Laravel reset links may remain valid after a .NET password change until Laravel expires/consumes/replaces them. This follows the approved independent-link contract; no global cross-application token revocation is claimed. A changed shared password hash invalidates .NET sessions and pending .NET links.
+- Map existing Spatie roles, permissions, pivot records, guard names, and model identifiers in F002. Permission edits from .NET must account for Laravel permission-cache invalidation; database updates alone may not immediately change Laravel's cached decisions.
+- F006 must resolve shared uploaded-file storage, paths, visibility, validation, and delete behavior before writing or removing files. Sharing the database alone does not make uploaded files accessible.
+- Tests must use a separately configured disposable database, never the shared application database. Approval to share application data does not authorize destructive test setup against that data.
+- Preserve concurrency, unique constraints, transactional integrity, and validation when both applications can edit the same data.
+
+F001 tests use only dss_enterprise_cms_dotnet_test. Three minimal tables exercise authentication and prove Laravel-style reset/session records remain untouched. Agent testing changed no shared application schema or user records. Normal user-invoked password/verification actions intentionally update shared authentication fields as described above.
