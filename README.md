@@ -1,6 +1,6 @@
 # Diwakar Enterprise CMS — React and .NET
 
-A separate React/TypeScript frontend and ASP.NET Core 8 backend. The foundation and F001–F004 are Complete. F005 Website Settings is ready for final approval; F006–F008 are not implemented yet.
+A separate React/TypeScript frontend and ASP.NET Core 8 backend. The foundation and F001–F005 are Complete. F006–F008 are not implemented yet.
 
 ## Requirements
 

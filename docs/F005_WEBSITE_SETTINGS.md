@@ -1,6 +1,6 @@
 # F005 — Website Settings (.NET port)
 
-Status: Ready for Final Approval
+Status: Complete
 
 ## Source and scope
 
@@ -70,4 +70,4 @@ Security and authorization review: the settings API remains under authenticated 
 
 Known limit: the agent did not use a signed-in shared-database browser session during final validation; the user reviewed the UI and approved this stage. The shared installation must have Laravel's F005 table and permission. Concurrent writes from Laravel and .NET use last-save-wins behavior. The separately deferred navigation improvement remains outside F005.
 
-F005 is ready for the user's final approval. Do not mark it Complete or begin F006 until explicit approval is given.
+The user gave final approval on 2026-10-29. F005 is Complete. F006 Media Library is next in the approved roadmap and requires separate permission before analysis begins.
