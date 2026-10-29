@@ -42,12 +42,24 @@ public sealed class RbacStore(MySqlDataSource source, PasswordHasher hasher)
         return new RbacSnapshot(roles.Contains("Super Admin", StringComparer.Ordinal), permissions, roles);
     }
 
-    public async Task<object> DashboardAsync(CancellationToken ct)
+    public async Task<object> DashboardAsync(RbacSnapshot actor, CancellationToken ct)
     {
-        await using var connection=await source.OpenConnectionAsync(ct);await using var command=connection.CreateCommand();
-        command.CommandText="SELECT (SELECT COUNT(*) FROM users),(SELECT COUNT(*) FROM roles WHERE guard_name='web'),(SELECT COUNT(*) FROM permissions WHERE guard_name='web')";
-        await using var reader=await command.ExecuteReaderAsync(ct);await reader.ReadAsync(ct);
-        return new { userCount=reader.GetUInt64(0), roleCount=reader.GetUInt64(1), permissionCount=reader.GetUInt64(2) };
+        if (!actor.IsSuperAdmin && !actor.Allows("users.view"))
+            return new { scope = "personal", primaryRole = actor.Roles.FirstOrDefault(), effectivePermissionCount = actor.Permissions.Count };
+
+        await using var connection = await source.OpenConnectionAsync(ct);
+        await using var command = connection.CreateCommand();
+        if (actor.IsSuperAdmin)
+        {
+            command.CommandText = "SELECT (SELECT COUNT(*) FROM users),(SELECT COUNT(*) FROM roles WHERE guard_name='web'),(SELECT COUNT(*) FROM permissions WHERE guard_name='web')";
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            await reader.ReadAsync(ct);
+            return new { scope = "global", userCount = reader.GetUInt64(0), roleCount = reader.GetUInt64(1), permissionCount = reader.GetUInt64(2) };
+        }
+
+        command.CommandText = "SELECT COUNT(*) FROM users";
+        var userCount = Convert.ToUInt64(await command.ExecuteScalarAsync(ct));
+        return new { scope = "personal", primaryRole = actor.Roles.FirstOrDefault(), effectivePermissionCount = actor.Permissions.Count, userCount };
     }
     public async Task<object> UsersAsync(CancellationToken ct)
     {

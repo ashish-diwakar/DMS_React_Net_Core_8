@@ -90,6 +90,8 @@ public sealed class AuthFixture : IAsyncLifetime
         await ExecuteAsync("DELETE FROM users");
         await ExecuteAsync("DELETE FROM password_reset_tokens");
         await ExecuteAsync("DELETE FROM sessions");
+        await ExecuteAsync("DELETE rp FROM role_has_permissions rp JOIN roles r ON r.id=rp.role_id WHERE r.name='Admin' AND r.guard_name='web'");
+        await ExecuteAsync("INSERT IGNORE INTO role_has_permissions(permission_id,role_id) SELECT p.id,r.id FROM permissions p JOIN roles r ON r.name='Admin' AND r.guard_name='web' WHERE p.guard_name='web' AND p.name IN ('admin.access','users.view','roles.view')");
     }
 
     public async Task<CmsUser> SeedAsync(string email = "existing@example.test", string? hash = null)

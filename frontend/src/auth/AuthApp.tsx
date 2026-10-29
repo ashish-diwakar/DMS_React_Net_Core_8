@@ -4,9 +4,10 @@ import { api, ApiError, safeReturnPath } from './api';
 import AdminPage from '../admin/AdminPage';
 import AdminShell from '../admin/AdminShell';
 import AdminPageHeading from '../admin/AdminPageHeading';
+import DashboardSummaryCards, { isDashboardSummary } from '../admin/DashboardSummary';
+import type { DashboardSummary } from '../admin/DashboardSummary';
 
 type User = { id: string; name: string; email: string; emailVerified: boolean; passwordConfirmed: boolean };
-type DashboardStats = { userCount:number; roleCount:number; permissionCount:number };
 type Authz = { roles:string[]; permissions:string[]; isSuperAdmin:boolean; canAccessAdmin:boolean; canViewUsers:boolean; canAssignRoles:boolean; canViewRoles:boolean; canManagePermissions:boolean };
 const titles: Record<string, string> = {
   '/login': 'Welcome back.', '/forgot-password': 'Forgot your password?', '/reset-password': 'Choose a new password.',
@@ -20,7 +21,7 @@ export default function AuthApp() {
   const query = new URLSearchParams(window.location.search);
   const [user, setUser] = useState<User | null>(null);
   const [authz,setAuthz]=useState<Authz|null>(null);
-  const [dashboard,setDashboard]=useState<DashboardStats|null>(null);
+  const [dashboard,setDashboard]=useState<DashboardSummary|null>(null);
   const [loading, setLoading] = useState(protectedPaths.includes(path));
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -31,13 +32,15 @@ export default function AuthApp() {
     document.title = `${titles[path] ?? 'Page unavailable'} | Diwakar Enterprise CMS`;
     if (!protectedPaths.includes(path)) return;
     const controller = new AbortController();
+    let dashboardRequested = false;
     void api<User>('/api/auth/me', 'GET', undefined, controller.signal).then(async value => {
       setUser(value);
       if (path.startsWith('/admin/')) {
         const state=await api<Authz>('/api/auth/authorization','GET',undefined,controller.signal);setAuthz(state);
         if (path === '/admin/dashboard' && state.canAccessAdmin) {
-          const summary = await api<DashboardStats>('/api/admin/dashboard', 'GET', undefined, controller.signal);
-          if (![summary.userCount, summary.roleCount, summary.permissionCount].every(value => Number.isSafeInteger(value) && value >= 0)) {
+          dashboardRequested = true;
+          const summary = await api<unknown>('/api/admin/dashboard', 'GET', undefined, controller.signal);
+          if (!isDashboardSummary(summary) || (summary.scope === 'global') !== state.isSuperAdmin) {
             throw new Error('Invalid dashboard summary');
           }
           setDashboard(summary);
@@ -47,7 +50,7 @@ export default function AuthApp() {
       if (controller.signal.aborted) return;
       if (failure instanceof ApiError && failure.status === 401) {
         window.location.replace('/login?returnUrl=' + encodeURIComponent(safeReturnPath(window.location.pathname + window.location.search)));
-      } else setError('Your account could not be loaded. Refresh the page to try again.');
+      } else setError(dashboardRequested ? 'Dashboard data is unavailable. Refresh the page to try again.' : 'Your account could not be loaded. Refresh the page to try again.');
     }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [path]);
@@ -105,26 +108,7 @@ export default function AuthApp() {
             <h2>CMS overview</h2>
             <p>Review the administration areas currently available to your account.</p>
           </section>
-          <div className="dashboard-metrics">
-            <article className="dashboard-metric">
-              <p className="dashboard-metric-label">Users</p>
-              <strong>{dashboard.userCount}</strong>
-              <p>Total CMS user accounts.</p>
-              {authz.canViewUsers && <a className="dashboard-view-link" href="/admin/users">View Users</a>}
-            </article>
-            <article className="dashboard-metric">
-              <p className="dashboard-metric-label">Roles</p>
-              <strong>{dashboard.roleCount}</strong>
-              <p>Configured CMS roles for the web guard.</p>
-              {authz.canViewRoles && <a className="dashboard-view-link" href="/admin/roles">View Roles</a>}
-            </article>
-            <article className="dashboard-metric">
-              <p className="dashboard-metric-label">Permissions</p>
-              <strong>{dashboard.permissionCount}</strong>
-              <p>Configured CMS permissions for the web guard.</p>
-              {authz.canViewRoles && <a className="dashboard-view-link" href="/admin/roles">View Roles</a>}
-            </article>
-          </div>
+          <DashboardSummaryCards summary={dashboard} capabilities={authz} />
         </>) : loading ? <p role="status">Loading dashboard…</p> : !error && <p className="auth-error" role="alert">Dashboard data is unavailable.</p>}
         <section className="dashboard-account-card" aria-labelledby="dashboard-account-heading">
           <h2 id="dashboard-account-heading">Account</h2>

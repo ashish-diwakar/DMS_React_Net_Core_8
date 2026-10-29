@@ -155,10 +155,11 @@ fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .dashboard-action-link, .dashboard-view-link { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0 var(--space-3); background: #fff; color: #26354c; font-size: 13px; text-decoration: none; cursor: pointer; font-weight: 500; --tw-text-opacity: 1; color: rgb(51 65 85 / var(--tw-text-opacity, 1)); font-size: 0.875rem;  line-height: 1.25rem;}
 .dashboard-action-link:hover, .dashboard-view-link:hover { --tw-bg-opacity: 1; background-color: rgb(248 250 252 / var(--tw-bg-opacity, 1));   --tw-text-opacity: 1; color: rgb(51 65 85 / var(--tw-text-opacity, 1)); }
 .dashboard-action-link:disabled { opacity: .6; cursor: not-allowed; }
-.dashboard-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin-top: var(--space-5); }
+.dashboard-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: var(--space-4); margin-top: var(--space-5); }
 .dashboard-metric { min-height: 192px; display: flex; flex-direction: column; align-items: flex-start; padding: var(--space-5); }
 .dashboard-metric .dashboard-metric-label { margin-bottom: var(--space-3); --tw-text-opacity: 1; color: rgb(100 116 139 / var(--tw-text-opacity, 1) 1); font-weight: 500; font-size: 0.875rem; line-height: 1.25rem; }
 .dashboard-metric strong { margin-bottom: var(--space-2); color: #111827; font-size: 30px; font-weight: 600; line-height: 1.1; }
+.dashboard-metric strong.dashboard-text-value { font-size: 24px; overflow-wrap: anywhere; }
 .dashboard-metric .dashboard-view-link { margin-top: var(--space-4); font-weight: 500; --tw-text-opacity: 1; color: rgb(51 65 85 / var(--tw-text-opacity, 1)); font-size: 0.875rem;  line-height: 1.25rem;}
 .dashboard-metric .dashboard-view-link:hover { --tw-bg-opacity: 1; background-color: rgb(248 250 252 / var(--tw-bg-opacity, 1));   --tw-text-opacity: 1; color: rgb(51 65 85 / var(--tw-text-opacity, 1)); }
 

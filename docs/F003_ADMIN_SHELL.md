@@ -1,6 +1,6 @@
 # F003 — Admin Application Shell (.NET port)
 
-Status: Implementation review
+Status: Complete
 
 ## Scope and source
 
@@ -32,13 +32,13 @@ Database and migrations: none. Packages/dependencies: none. Security: preserve a
 
 ## Acceptance criteria for this port
 
-- [ ] Dashboard, Users, and Roles use one consistent admin shell and page heading.
-- [ ] Desktop sidebar and top bar retain the approved appearance and active/permission-aware navigation.
-- [ ] Mobile navigation opens, closes, and remains keyboard usable with sensible focus behavior.
-- [ ] Identity menu and secure logout remain usable; F001 account actions remain available.
-- [ ] Users without `admin.access` do not receive the admin shell; backend protection remains intact.
-- [ ] No future module link, database change, new package, or unrelated feature is introduced.
-- [ ] Focused checks pass and the user reviews the implementation before final validation.
+- [x] Dashboard, Users, and Roles use one consistent admin shell and page heading.
+- [x] Desktop sidebar and top bar retain the approved appearance and active/permission-aware navigation.
+- [x] Mobile navigation opens, closes, and remains keyboard usable with sensible focus behavior.
+- [x] Identity menu and secure logout remain usable; F001 account actions remain available.
+- [x] Users without `admin.access` do not receive the admin shell; backend protection remains intact.
+- [x] No future module link, database change, new package, or unrelated feature is introduced.
+- [x] Focused checks pass and the user reviews the implementation before final validation.
 
 ## Implementation and focused-check record — 2026-10-29
 
@@ -53,3 +53,13 @@ Known limitation for review: backend regression checks need the local isolated M
 The user requested that non-editing viewers see the same permission-card grid used by an editor. `frontend/src/admin/AdminPage.tsx` now renders all managed permissions, plus any additional granted permissions, as checked or unchecked **disabled** checkboxes in the existing grid. The read-only view has no Save Permissions button. The existing `canManagePermissions` check still controls editing, and the protected Super Admin role explanation remains unchanged. No backend authorization or database behavior changed. The focused frontend TypeScript/Vite build passed; `git diff --check` found no whitespace errors. Browser review remains pending.
 
 The next gate is user code/UI review. Final validation and Complete status require separate approvals.
+
+## Final validation and approval gate — 2026-10-29
+
+The user approved final validation, and later confirmed the mobile UI works. Their supplied desktop Dashboard and Roles screenshots and review corrections covered the current desktop presentation. Windows Computer Use was stopped by its browser URL-policy limitation, so the agent did not claim an independent browser session; the user performed the mobile check.
+
+Final automated results: isolated .NET authentication/RBAC suite 34 passed, 0 failed/skipped; frontend auth and shell tests 4 passed, 0 failed; configured `npm run build` passed TypeScript and Vite bundling. Local MySQL was available for the isolated suite. The previous test-host connection failures were environmental and are superseded by this successful run. The suite used only `dss_enterprise_cms_dotnet_test` and did not write to the shared application database.
+
+Final review: backend `/api/admin` retains authentication and `admin.access` filters; user/role APIs retain their F002 permission checks and CSRF validation; the frontend now withholds the admin shell without `canAccessAdmin`, while the read-only Roles grid remains non-editable for viewers without `roles.manage_permissions`. Logout still uses the existing CSRF-protected POST API. Current React values render through escaped JSX. No schema/migration, tracked package manifest or lockfile, Laravel code, new future-module link, secret, debug artifact, or unrelated application feature was introduced. `git show --check HEAD` and working-tree `git diff --check` passed.
+
+The user created local commit `d2aeba1` containing the reviewed F003 work and the previously approved F002 completion/README documentation changes; the agent did not create or alter that commit or contact a Git remote. The separate, user-requested F004 requirement note remains untracked and outside F003 validation. F003 acceptance criteria are satisfied. The user gave final completion approval on 2026-10-29. F003 is Complete. F004 analysis and implementation have not started and require separate authorization.

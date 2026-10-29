@@ -143,8 +143,16 @@ public static class AuthEndpoints
             if(!HttpMethods.IsGet(context.Request.Method)) { try { await context.RequestServices.GetRequiredService<IAntiforgery>().ValidateRequestAsync(context); } catch(AntiforgeryValidationException) { return Results.Json(new { message="The request could not be verified. Refresh the page and try again." },statusCode:400); } }
             return await next(invocation);
         });
-        admin.AddEndpointFilter(async (invocation,next) => { var s=await invocation.HttpContext.RequestServices.GetRequiredService<RbacStore>().GetAsync(Current(invocation.HttpContext).Id,invocation.HttpContext.RequestAborted); return s.Allows("admin.access")?await next(invocation):Results.Json(new {message="You do not have access to this area."},statusCode:403); });
-        admin.MapGet("/dashboard", async (HttpContext context,RbacStore rbac,CancellationToken ct) => Results.Ok(await rbac.DashboardAsync(ct))).RequireAuthorization();
+        admin.AddEndpointFilter(async (invocation, next) =>
+        {
+            var context = invocation.HttpContext;
+            var snapshot = await context.RequestServices.GetRequiredService<RbacStore>().GetAsync(Current(context).Id, context.RequestAborted);
+            if (!snapshot.Allows("admin.access")) return Results.Json(new { message = "You do not have access to this area." }, statusCode: 403);
+            context.Items[typeof(RbacSnapshot)] = snapshot;
+            return await next(invocation);
+        });
+        admin.MapGet("/dashboard", async (HttpContext context, RbacStore rbac, CancellationToken ct) =>
+            Results.Ok(await rbac.DashboardAsync((RbacSnapshot)context.Items[typeof(RbacSnapshot)]!, ct))).RequireAuthorization();
         admin.MapGet("/users", async (HttpContext context,RbacStore rbac,CancellationToken ct) => { var s=await rbac.GetAsync(Current(context).Id,ct); return s.Allows("users.view")?Results.Ok(new { users=await rbac.UsersAsync(ct), roles=await rbac.AssignmentRolesAsync(ct) }):Results.Json(new {message="You do not have permission to view users."},statusCode:403); });
         admin.MapPost("/users", async (CreateAdminInput input, HttpContext context, RbacStore rbac, CancellationToken ct) =>
         {
