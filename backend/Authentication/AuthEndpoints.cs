@@ -3,8 +3,13 @@ using System.Diagnostics;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
+using Diwakar.Cms.Api.Authorization;
 
 namespace Diwakar.Cms.Api.Authentication;
+
+public sealed record CreateAdminInput(string? Name, string? Email, string? Password, string? PasswordConfirmation);
+public sealed record RoleAssignmentInput(string? RoleId);
+public sealed record RolePermissionsInput(string[]? Permissions);
 
 public static class AuthEndpoints
 {
@@ -123,11 +128,51 @@ public static class AuthEndpoints
                 ? Error("This verification link is invalid or expired.", 400)
                 : Results.Ok(new { message = "Email verified." })).RequireAuthorization();
 
-        app.MapGet("/api/admin/dashboard", (HttpContext context) =>
+        app.MapGet("/api/auth/authorization", async (HttpContext context, RbacStore rbac, CancellationToken ct) =>
         {
             context.Response.Headers.CacheControl = "no-store";
-            return Results.Ok(new { message = "You are signed in.", name = Current(context).Name });
+            var state = await rbac.GetAsync(Current(context).Id, ct);
+            return Results.Ok(new { roles = state.Roles, permissions = state.Permissions.Order(StringComparer.Ordinal), isSuperAdmin = state.IsSuperAdmin,
+                canAccessAdmin = state.Allows("admin.access"), canViewUsers = state.Allows("users.view"), canAssignRoles = state.Allows("users.assign_roles"),
+                canViewRoles = state.Allows("roles.view"), canManagePermissions = state.Allows("roles.manage_permissions") });
         }).RequireAuthorization();
+
+        var admin = app.MapGroup("/api/admin").RequireAuthorization().AddEndpointFilter(async (invocation, next) =>
+        {
+            var context=invocation.HttpContext; context.Response.Headers.CacheControl="no-cache, no-store"; context.Response.Headers.Pragma="no-cache";
+            if(!HttpMethods.IsGet(context.Request.Method)) { try { await context.RequestServices.GetRequiredService<IAntiforgery>().ValidateRequestAsync(context); } catch(AntiforgeryValidationException) { return Results.Json(new { message="The request could not be verified. Refresh the page and try again." },statusCode:400); } }
+            return await next(invocation);
+        });
+        admin.AddEndpointFilter(async (invocation,next) => { var s=await invocation.HttpContext.RequestServices.GetRequiredService<RbacStore>().GetAsync(Current(invocation.HttpContext).Id,invocation.HttpContext.RequestAborted); return s.Allows("admin.access")?await next(invocation):Results.Json(new {message="You do not have access to this area."},statusCode:403); });
+        admin.MapGet("/dashboard", async (HttpContext context,RbacStore rbac,CancellationToken ct) => Results.Ok(await rbac.DashboardAsync(ct))).RequireAuthorization();
+        admin.MapGet("/users", async (HttpContext context,RbacStore rbac,CancellationToken ct) => { var s=await rbac.GetAsync(Current(context).Id,ct); return s.Allows("users.view")?Results.Ok(new { users=await rbac.UsersAsync(ct), roles=await rbac.AssignmentRolesAsync(ct) }):Results.Json(new {message="You do not have permission to view users."},statusCode:403); });
+        admin.MapPost("/users", async (CreateAdminInput input, HttpContext context, RbacStore rbac, CancellationToken ct) =>
+        {
+            var result = await rbac.CreateAdminAsync(Current(context).Id, input.Name, input.Email,
+                input.Password, input.PasswordConfirmation, ct);
+            return result.Status switch
+            {
+                CreateAdminStatus.Created => Results.Json(new { message = "Admin created.", user = new
+                {
+                    id = result.Id!.Value.ToString(CultureInfo.InvariantCulture), result.Name, result.Email,
+                    emailVerified = false, role = "Admin"
+                } }, statusCode: 201),
+                CreateAdminStatus.Invalid => Error("Enter a valid name, email, and matching password of at least eight characters.", 400),
+                CreateAdminStatus.Duplicate => Error("An account with this email already exists.", 409),
+                _ => Error("Only a Super Admin can create Admin accounts.", 403)
+            };
+        });
+        admin.MapPatch("/users/{id}/role", async (string id,RoleAssignmentInput input,HttpContext context,RbacStore rbac,CancellationToken ct) =>
+        {
+            if(!ulong.TryParse(id,out var target)||target==0||!ulong.TryParse(input.RoleId,out var role)||role==0)return Results.BadRequest(new {message="Choose a valid user and role."});
+            return await rbac.AssignRoleAsync(Current(context).Id,target,role,ct)?Results.Ok(new {message="User role updated."}):Results.Json(new {message="The assignment is not permitted or conflicts with Super Admin protection."},statusCode:403);
+        });
+        admin.MapGet("/roles", async (HttpContext context,RbacStore rbac,CancellationToken ct) => { var s=await rbac.GetAsync(Current(context).Id,ct); return s.Allows("roles.view")?Results.Ok(await rbac.RolesAsync(ct)):Results.Json(new {message="You do not have permission to view roles."},statusCode:403); });
+        admin.MapPatch("/roles/{id}/permissions", async (string id,RolePermissionsInput input,HttpContext context,RbacStore rbac,CancellationToken ct) =>
+        {
+            if(!ulong.TryParse(id,out var role)||role==0||input.Permissions is null)return Results.BadRequest(new {message="Provide a valid role and permissions list."});
+            return await rbac.UpdateRolePermissionsAsync(Current(context).Id,role,input.Permissions,ct)?Results.Ok(new {message="Role permissions updated."}):Results.Json(new {message="The update is not permitted or contains unsupported permissions."},statusCode:403);
+        });
     }
 
     private static CmsUser Current(HttpContext context) => (CmsUser)context.Items[typeof(CmsUser)]!;

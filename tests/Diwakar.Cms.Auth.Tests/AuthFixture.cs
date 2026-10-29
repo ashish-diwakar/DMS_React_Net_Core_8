@@ -59,6 +59,15 @@ public sealed class AuthFixture : IAsyncLifetime
             """);
         await ExecuteAsync("CREATE TABLE IF NOT EXISTS password_reset_tokens (email VARCHAR(255) PRIMARY KEY, token VARCHAR(255) NOT NULL, created_at TIMESTAMP NULL)");
         await ExecuteAsync("CREATE TABLE IF NOT EXISTS sessions (id VARCHAR(255) PRIMARY KEY, payload LONGTEXT NOT NULL)");
+        await ExecuteAsync("CREATE TABLE IF NOT EXISTS roles (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,name VARCHAR(255) NOT NULL,guard_name VARCHAR(255) NOT NULL,created_at TIMESTAMP NULL,updated_at TIMESTAMP NULL,UNIQUE KEY roles_name_guard_unique(name,guard_name))");
+        await ExecuteAsync("CREATE TABLE IF NOT EXISTS permissions (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,name VARCHAR(255) NOT NULL,guard_name VARCHAR(255) NOT NULL,created_at TIMESTAMP NULL,updated_at TIMESTAMP NULL,UNIQUE KEY permissions_name_guard_unique(name,guard_name))");
+        await ExecuteAsync("CREATE TABLE IF NOT EXISTS model_has_roles (role_id BIGINT UNSIGNED NOT NULL,model_type VARCHAR(255) NOT NULL,model_id BIGINT UNSIGNED NOT NULL,PRIMARY KEY(role_id,model_id,model_type),KEY model_has_roles_model_id_model_type_index(model_id,model_type))");
+        await ExecuteAsync("CREATE TABLE IF NOT EXISTS model_has_permissions (permission_id BIGINT UNSIGNED NOT NULL,model_type VARCHAR(255) NOT NULL,model_id BIGINT UNSIGNED NOT NULL,PRIMARY KEY(permission_id,model_id,model_type),KEY model_has_permissions_model_id_model_type_index(model_id,model_type))");
+        await ExecuteAsync("CREATE TABLE IF NOT EXISTS role_has_permissions (permission_id BIGINT UNSIGNED NOT NULL,role_id BIGINT UNSIGNED NOT NULL,PRIMARY KEY(permission_id,role_id))");
+        await ExecuteAsync("CREATE TABLE IF NOT EXISTS cache (`key` VARCHAR(255) PRIMARY KEY,value MEDIUMTEXT NOT NULL,expiration INT NOT NULL,KEY cache_expiration_index(expiration))");
+        foreach(var name in Diwakar.Cms.Api.Authorization.RbacStore.ManagedPermissions) await ExecuteAsync("INSERT IGNORE INTO permissions(name,guard_name) VALUES(@name,'web')",("@name",name));
+        await ExecuteAsync("INSERT IGNORE INTO roles(name,guard_name) VALUES('Admin','web'),('Super Admin','web')");
+        await ExecuteAsync("INSERT IGNORE INTO role_has_permissions(permission_id,role_id) SELECT p.id,r.id FROM permissions p JOIN roles r ON r.name='Admin' AND r.guard_name='web' WHERE p.guard_name='web' AND p.name IN ('admin.access','users.view','roles.view')");
     }
 
     public async Task ExecuteAsync(string sql, params (string Name, object Value)[] parameters)
@@ -75,6 +84,9 @@ public sealed class AuthFixture : IAsyncLifetime
 
     public async Task ResetAsync()
     {
+        await ExecuteAsync("DELETE FROM model_has_roles");
+        await ExecuteAsync("DELETE FROM model_has_permissions");
+        await ExecuteAsync("DELETE FROM cache");
         await ExecuteAsync("DELETE FROM users");
         await ExecuteAsync("DELETE FROM password_reset_tokens");
         await ExecuteAsync("DELETE FROM sessions");
@@ -88,6 +100,9 @@ public sealed class AuthFixture : IAsyncLifetime
         return (await new SharedUserStore(source).FindByEmailAsync(email))!;
     }
 
+    public async Task<object?> ScalarAsync(string sql,params (string Name,object Value)[] parameters){var settings=new MySqlConnectionStringBuilder(ConnectionString);if(settings.Database!=TestDatabase)throw new InvalidOperationException("Unsafe test database.");await using var c=new MySqlConnection(ConnectionString);await c.OpenAsync();await using var q=c.CreateCommand();q.CommandText=sql;foreach(var (name,value) in parameters)q.Parameters.AddWithValue(name,value);return await q.ExecuteScalarAsync();}
+
+    public Task GrantRoleAsync(CmsUser user,string role) => ExecuteAsync("INSERT INTO model_has_roles(role_id,model_type,model_id) SELECT id,@model,@user FROM roles WHERE name=@role AND guard_name='web'",("@model","App\\Models\\User"),("@user",user.Id),("@role",role));
     public Factory CreateFactory() => new(this);
     public Task DisposeAsync() => Task.CompletedTask;
 

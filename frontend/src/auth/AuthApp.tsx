@@ -1,19 +1,25 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { api, ApiError, safeReturnPath } from './api';
+import AdminPage from '../admin/AdminPage';
+import AdminShell from '../admin/AdminShell';
 
 type User = { id: string; name: string; email: string; emailVerified: boolean; passwordConfirmed: boolean };
+type DashboardStats = { userCount:number; roleCount:number; permissionCount:number };
+type Authz = { roles:string[]; permissions:string[]; isSuperAdmin:boolean; canAccessAdmin:boolean; canViewUsers:boolean; canAssignRoles:boolean; canViewRoles:boolean; canManagePermissions:boolean };
 const titles: Record<string, string> = {
   '/login': 'Welcome back.', '/forgot-password': 'Forgot your password?', '/reset-password': 'Choose a new password.',
   '/confirm-password': 'Confirm it’s you.', '/change-password': 'Change your password.', '/verify-email': 'Verify your email.',
-  '/admin/dashboard': 'You’re signed in.',
+  '/admin/dashboard': 'Dashboard', '/admin/users':'Users', '/admin/roles':'Roles and permissions',
 };
-const protectedPaths = ['/confirm-password', '/change-password', '/verify-email', '/admin/dashboard'];
+const protectedPaths = ['/confirm-password', '/change-password', '/verify-email', '/admin/dashboard','/admin/users','/admin/roles'];
 
 export default function AuthApp() {
   const path = window.location.pathname;
   const query = new URLSearchParams(window.location.search);
   const [user, setUser] = useState<User | null>(null);
+  const [authz,setAuthz]=useState<Authz|null>(null);
+  const [dashboard,setDashboard]=useState<DashboardStats|null>(null);
   const [loading, setLoading] = useState(protectedPaths.includes(path));
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -24,7 +30,19 @@ export default function AuthApp() {
     document.title = `${titles[path] ?? 'Page unavailable'} | Diwakar Enterprise CMS`;
     if (!protectedPaths.includes(path)) return;
     const controller = new AbortController();
-    void api<User>('/api/auth/me', 'GET', undefined, controller.signal).then(setUser).catch((failure: unknown) => {
+    void api<User>('/api/auth/me', 'GET', undefined, controller.signal).then(async value => {
+      setUser(value);
+      if (path.startsWith('/admin/')) {
+        const state=await api<Authz>('/api/auth/authorization','GET',undefined,controller.signal);setAuthz(state);
+        if (path === '/admin/dashboard' && state.canAccessAdmin) {
+          const summary = await api<DashboardStats>('/api/admin/dashboard', 'GET', undefined, controller.signal);
+          if (![summary.userCount, summary.roleCount, summary.permissionCount].every(value => Number.isSafeInteger(value) && value >= 0)) {
+            throw new Error('Invalid dashboard summary');
+          }
+          setDashboard(summary);
+        }
+      }
+    }).catch((failure: unknown) => {
       if (controller.signal.aborted) return;
       if (failure instanceof ApiError && failure.status === 401) {
         window.location.replace('/login?returnUrl=' + encodeURIComponent(safeReturnPath(window.location.pathname + window.location.search)));
@@ -74,7 +92,59 @@ export default function AuthApp() {
     </label>
   );
 
-  const showForm = known && path !== '/admin/dashboard' && path !== '/verify-email' && (!protectedPaths.includes(path) || user);
+  const showForm = known && !path.startsWith('/admin/') && path !== '/verify-email' && (!protectedPaths.includes(path) || user);
+
+  if(path.startsWith('/admin/') && user && authz) return <AdminShell user={user} authz={authz} path={path}>
+    {error&&<p className="auth-error" role="alert">{error}</p>}{message&&<p className="auth-success" role="status">{message}</p>}
+    {path === '/admin/dashboard' && authz.canAccessAdmin && (
+      <section className="admin-dashboard">
+        <header className="admin-page-heading">
+          <h1>Dashboard</h1>
+          <p>Overview of the currently available CMS administration areas.</p>
+        </header>
+        {dashboard ? (<>
+          <section className="dashboard-overview">
+            <h2>CMS overview</h2>
+            <p>Review the administration areas currently available to your account.</p>
+          </section>
+          <div className="dashboard-metrics">
+            <article className="dashboard-metric">
+              <p className="dashboard-metric-label">Users</p>
+              <strong>{dashboard.userCount}</strong>
+              <p>Total CMS user accounts.</p>
+              {authz.canViewUsers && <a className="dashboard-view-link" href="/admin/users">View Users</a>}
+            </article>
+            <article className="dashboard-metric">
+              <p className="dashboard-metric-label">Roles</p>
+              <strong>{dashboard.roleCount}</strong>
+              <p>Configured CMS roles for the web guard.</p>
+              {authz.canViewRoles && <a className="dashboard-view-link" href="/admin/roles">View Roles</a>}
+            </article>
+            <article className="dashboard-metric">
+              <p className="dashboard-metric-label">Permissions</p>
+              <strong>{dashboard.permissionCount}</strong>
+              <p>Configured CMS permissions for the web guard.</p>
+              {authz.canViewRoles && <a className="dashboard-view-link" href="/admin/roles">View Roles</a>}
+            </article>
+          </div>
+        </>) : loading ? <p role="status">Loading dashboard…</p> : !error && <p className="auth-error" role="alert">Dashboard data is unavailable.</p>}
+        <section className="dashboard-account-card" aria-labelledby="dashboard-account-heading">
+          <h2 id="dashboard-account-heading">Account</h2>
+          <div className="dashboard-account-actions">
+            <a className="dashboard-action-link" href="/change-password">Change password</a>
+            <a className="dashboard-action-link" href="/confirm-password">Confirm password</a>
+            <a className="dashboard-action-link" href="/verify-email">{user.emailVerified ? 'Email verified' : 'Verify email'}</a>
+            <button className="dashboard-action-link" disabled={busy} onClick={() => void perform(async () => {
+              await api('/api/auth/logout', 'POST', {});
+              window.location.assign('/');
+            })}>{busy ? 'Signing out…' : 'Sign out'}</button>
+          </div>
+        </section>
+      </section>
+    )}
+    {path==='/admin/dashboard'&&!authz.canAccessAdmin&&<p className="auth-error" role="alert">You do not have access to this area.</p>}
+    {(path==='/admin/users'||path==='/admin/roles')&&<><header className="admin-page-heading"><h1>{path==='/admin/users'?'Users':'Roles'}</h1><p>{path==='/admin/users'?'View CMS users and manage their assigned primary role.':'Review web roles and manage their permissions.'}</p></header><AdminPage kind={path.endsWith('users')?'users':'roles'} authz={authz}/></>}
+  </AdminShell>;
 
   return (
     <div className="workspace auth-workspace">
@@ -108,12 +178,7 @@ export default function AuthApp() {
             </fieldset>
             {path === '/forgot-password' && <p className="auth-hint">Enter your account email to request a reset link.</p>}
           </form>}
-          {path === '/admin/dashboard' && user && <>
-            <p className="intro">Welcome, {user.name}.</p><p>{user.email}</p>
-            <p className="auth-hint">Your account is ready. Content management will become available as the CMS modules are introduced.</p>
-            <nav className="account-links" aria-label="Account"><a href="/change-password">Change password</a><a href="/confirm-password">Confirm password</a><a href="/verify-email">{user.emailVerified ? 'Email verified' : 'Verify email'}</a></nav>
-            <button className="auth-button" disabled={busy} onClick={() => void perform(async () => { await api('/api/auth/logout', 'POST', {}); window.location.assign('/'); })}>{busy ? 'Signing out…' : 'Sign out'}</button>
-          </>}
+          {path === '/admin/dashboard' && user && authz?.canAccessAdmin && <p>Welcome, {user.name}.</p>}
           {path === '/verify-email' && user && <>
             <p>{user.emailVerified ? 'Your email is verified.' : `Confirm that ${user.email} belongs to you.`}</p>
             {!user.emailVerified && <>
@@ -127,7 +192,7 @@ export default function AuthApp() {
               })}>Send verification link</button>
             </>}
           </>}
-          {known && path !== '/login' && path !== '/admin/dashboard' && <p className="auth-back"><a href={user ? '/admin/dashboard' : '/login'}>{user ? 'Back to account' : 'Back to sign in'}</a></p>}
+          {known && path !== '/login' && !path.startsWith('/admin/') && <p className="auth-back"><a href={user ? '/admin/dashboard' : '/login'}>{user ? 'Back to account' : 'Back to sign in'}</a></p>}
         </section>
       </main>
       <footer>Diwakar Enterprise CMS <span>A home for your content.</span></footer>

@@ -1,5 +1,8 @@
 using Diwakar.Cms.Api.Authentication;
 using MySqlConnector;
+using Diwakar.Cms.Api.Authorization;
+
+if(args.Length>0 && args[0]=="provision-super-admin") { await RbacProvisioningCommand.RunAsync(args); return; }
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false).AddEnvironmentVariables();

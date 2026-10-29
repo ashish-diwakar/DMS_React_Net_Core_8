@@ -10,6 +10,8 @@ test('return paths stay on the approved local account pages', () => {
     for (const value of [null, 'https://evil.test', '//evil.test', '/\\evil.test', '/login', '/%2f%2fevil.test', '/admin/dashboard/../../login'])
       assert.equal(safeReturnPath(value), '/admin/dashboard');
     assert.equal(safeReturnPath('/change-password'), '/change-password');
+    assert.equal(safeReturnPath('/admin/users'), '/admin/users');
+    assert.equal(safeReturnPath('/admin/roles'), '/admin/roles');
     assert.equal(safeReturnPath('/verify-email?token=synthetic'), '/verify-email?token=synthetic');
   } finally { globalThis.window = previous; }
 });

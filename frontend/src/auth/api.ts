@@ -31,6 +31,6 @@ export async function api<T>(path: string, method = 'GET', body?: unknown, signa
 export function safeReturnPath(value: string | null): string {
   if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) return '/admin/dashboard';
   const url = new URL(value, window.location.origin);
-  return url.origin === window.location.origin && ['/admin/dashboard', '/confirm-password', '/change-password', '/verify-email'].includes(url.pathname)
+  return url.origin === window.location.origin && ['/admin/dashboard','/admin/users','/admin/roles', '/confirm-password', '/change-password', '/verify-email'].includes(url.pathname)
     ? url.pathname + url.search : '/admin/dashboard';
 }

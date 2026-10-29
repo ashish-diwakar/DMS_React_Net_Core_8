@@ -38,6 +38,7 @@ public sealed class AuthenticationTests(AuthFixture fixture) : IAsyncLifetime
     {
         var hash = await PasswordCompatibilityTests.PhpAsync(new { action = "hash", password = "existing-password" });
         var user = await fixture.SeedAsync(hash: hash);
+        await fixture.GrantRoleAsync(user,"Super Admin");
         using var factory = fixture.CreateFactory();
         using var client = factory.Browser();
         await Factory.LoginAsync(client);
@@ -262,7 +263,7 @@ public sealed class AuthenticationTests(AuthFixture fixture) : IAsyncLifetime
         using var factory = fixture.CreateFactory();
         using var client = factory.Browser();
         await Factory.LoginAsync(client);
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/admin/dashboard")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/admin/dashboard")).StatusCode);
         var otherToken = await TokenAsync(factory, other, "VerifyEmail:");
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/auth/verify-email", new { token = otherToken })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/auth/verify-email", new { token = "tampered" })).StatusCode);

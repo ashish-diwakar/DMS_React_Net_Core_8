@@ -1,6 +1,6 @@
 # Diwakar Enterprise CMS — React and .NET
 
-A separate React/TypeScript frontend and ASP.NET Core 8 backend. The foundation is Complete. F001 authentication is implemented and awaiting review. F002–F008 are not implemented yet.
+A separate React/TypeScript frontend and ASP.NET Core 8 backend. The foundation and F001 authentication are Complete. F002 RBAC is implemented and awaiting user code review. F003–F008 are not implemented yet.
 
 ## Requirements
 
@@ -48,7 +48,7 @@ The backend uses the same MariaDB database as Laravel through MySqlConnector and
 
 ## Authentication
 
-Open /login and use an existing Laravel account. Login opens an authentication-only /admin/dashboard confirmation without CMS data or administrative operations. Public registration remains unavailable. Account links provide password confirmation/change and optional email verification. Logout returns to the public home page.
+Open /login and use an existing Laravel account. Login opens the protected /admin/dashboard overview for users with admin.access. The overview shows live user, web-role, and web-permission counts. F002 adds capability-gated user and role screens at /admin/users and /admin/roles, backed by the existing Laravel Spatie roles/permissions tables. On the Users page, only Super Admin can see Create Admin; it creates an account with the existing Admin role and its current permissions using a manually supplied initial password. No invitation email is sent. Public registration and a separate ordinary User creation flow remain unavailable. Account links provide password confirmation/change and optional email verification. Logout returns to the public home page.
 
 In Development, reset and verification messages become private .eml files under backend/.local/mail. Open the local file for the link; files are not web-accessible. They contain sensitive temporary links: never commit/share them or paste them into logs. Links are .NET-specific, expire after 60 minutes, and bind to current account/password state. No real email is sent. Outside Development, recovery/resend fails closed until a mail provider is separately approved and configured.
 
@@ -63,10 +63,17 @@ Set-Location frontend
 npm run test:auth
 ```
 
-The .NET harness creates only dss_enterprise_cms_dotnet_test and three required test tables, then clears records only within that guarded database. It explicitly replaces the test host's database source to prevent falling back to the shared database. The local account needs permission to create/use this isolated database. Tests never seed or reset dss_enterprise_cms. Test rows and private artifacts may remain in the isolated database and backend/.local/test-mail.
+The .NET harness creates only dss_enterprise_cms_dotnet_test and nine required test tables, then clears records only within that guarded database. It explicitly replaces the test host's database source to prevent falling back to the shared database. The local account needs permission to create/use this isolated database. Tests never seed or reset dss_enterprise_cms. Test rows and private artifacts may remain in the isolated database and backend/.local/test-mail.
 
 PHP fixtures use C:/xampp/php/php.exe by default; CMS_TEST_PHP can select another PHP executable. Synthetic inputs use stdin, not command-line credentials. Frontend tests use Node's built-in runner and native TypeScript stripping; Node 24.1 emits an experimental-feature warning. No frontend test package was added.
 
 ## Workflow
 
 Read AGENTS.md and the active docs/F001_AUTHENTICATION.md. Implementation review precedes final validation; completion requires explicit approval. Each feature has its own approval gates. The original Laravel project remains independently runnable.
+
+
+## F002 role management
+
+Administrative APIs enforce admin.access and the matching users/roles capability. Super Admin permissions are protected; .NET role writes serialize through the existing web Super Admin role row and invalidate only Laravel's configured database permission-cache key in the same transaction. Provisioning is an explicit operator command: dotnet run --project backend/Diwakar.Cms.Api.csproj -- provision-super-admin [email]. Run it only when intentionally changing shared users; a new user prompts for a name and hidden password. No provisioning runs during application startup.
+
+Laravel remains unchanged. Its role-assignment path does not use the .NET row lock, so concurrent last-Super-Admin demotions across the two applications are not globally serialized. Avoid making such demotions simultaneously. Long-running Laravel worker snapshots and alternate cache stores require a separate compatibility review.
