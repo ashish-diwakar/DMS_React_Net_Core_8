@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Diwakar.Cms.Api.Authorization;
 using Diwakar.Cms.Api.Settings;
+using Diwakar.Cms.Api.Media;
 
 namespace Diwakar.Cms.Api.Authentication;
 
@@ -136,7 +137,7 @@ public static class AuthEndpoints
             return Results.Ok(new { roles = state.Roles, permissions = state.Permissions.Order(StringComparer.Ordinal), isSuperAdmin = state.IsSuperAdmin,
                 canAccessAdmin = state.Allows("admin.access"), canViewUsers = state.Allows("users.view"), canAssignRoles = state.Allows("users.assign_roles"),
                 canViewRoles = state.Allows("roles.view"), canManagePermissions = state.Allows("roles.manage_permissions"),
-                canManageSettings = state.Allows("settings.manage") });
+                canManageSettings = state.Allows("settings.manage"), canManageMedia = state.Allows("media.manage") });
         }).RequireAuthorization();
 
         var admin = app.MapGroup("/api/admin").RequireAuthorization().AddEndpointFilter(async (invocation, next) =>
@@ -153,6 +154,7 @@ public static class AuthEndpoints
             context.Items[typeof(RbacSnapshot)] = snapshot;
             return await next(invocation);
         });
+        app.MapMedia(admin);
         admin.MapGet("/dashboard", async (HttpContext context, RbacStore rbac, CancellationToken ct) =>
             Results.Ok(await rbac.DashboardAsync((RbacSnapshot)context.Items[typeof(RbacSnapshot)]!, ct))).RequireAuthorization();
         admin.MapGet("/settings", async (HttpContext context, WebsiteSettingsStore settings, CancellationToken ct) =>

@@ -49,3 +49,12 @@ test('Settings becomes an active link only for an authorized account', () => {
   const denied = render(base, '/admin/settings');
   assert.doesNotMatch(denied, /href="\/admin\/settings"/);
 });
+
+test('Media Library is a route only when media management is granted', () => {
+  const allowed = render({ ...base, isSuperAdmin: true }, '/admin/media');
+  assert.match(allowed, /href="\/admin\/media"[^>]*aria-current="page"/);
+  const granted = render({ ...base, permissions: ['media.manage'] }, '/admin/media');
+  assert.match(granted, /href="\/admin\/media"/);
+  const denied = render(base, '/admin/media');
+  assert.doesNotMatch(denied, /href="\/admin\/media"/);
+});

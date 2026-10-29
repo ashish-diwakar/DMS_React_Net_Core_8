@@ -36,9 +36,20 @@ export async function api<T>(path: string, method = 'GET', body?: unknown, signa
   return response.json() as Promise<T>;
 }
 
+export async function apiForm<T>(path: string, form: FormData): Promise<T> {
+  const token = (await api<{ token: string }>("/api/auth/csrf")).token;
+  const response = await fetch(path, { method: "POST", credentials: "same-origin", cache: "no-store", headers: { "X-CSRF-TOKEN": token }, body: form });
+  if (!response.ok) {
+    let message = "The upload could not be completed.";
+    try { const body = await response.json(); if (typeof body.message === "string") message = body.message; } catch { /* Keep a safe fallback. */ }
+    throw new ApiError(message, response.status);
+  }
+  return response.json() as Promise<T>;
+}
+
 export function safeReturnPath(value: string | null): string {
   if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) return '/admin/dashboard';
   const url = new URL(value, window.location.origin);
-  return url.origin === window.location.origin && ['/admin/dashboard','/admin/users','/admin/roles','/admin/settings', '/confirm-password', '/change-password', '/verify-email'].includes(url.pathname)
+  return url.origin === window.location.origin && ['/admin/dashboard','/admin/users','/admin/roles','/admin/settings','/admin/media', '/confirm-password', '/change-password', '/verify-email'].includes(url.pathname)
     ? url.pathname + url.search : '/admin/dashboard';
 }

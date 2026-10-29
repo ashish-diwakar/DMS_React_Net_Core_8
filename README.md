@@ -1,6 +1,6 @@
 # Diwakar Enterprise CMS — React and .NET
 
-A separate React/TypeScript frontend and ASP.NET Core 8 backend. The foundation and F001–F005 are Complete. F006–F008 are not implemented yet.
+A separate React/TypeScript frontend and ASP.NET Core 8 backend. The foundation and F001–F006 are Complete. F007–F008 are not implemented yet.
 
 ## Requirements
 
@@ -30,7 +30,7 @@ Run the following steps in order. Laravel does **not** need to be running; the R
    }
    ```
 
-   Open `backend/appsettings.Local.json` privately and set `Database:Server`, `Port`, `Name`, `User`, and `Password` for the existing database. This checkout already has a local file; do not overwrite it. Environment variables `Database__Server`, `Database__Port`, `Database__Name`, `Database__User`, and `Database__Password` can override the file. Never commit credentials or put them in Vite variables. The API uses the existing schema and does not migrate or seed it.
+   Open `backend/appsettings.Local.json` privately and set `Database:Server`, `Port`, `Name`, `User`, and `Password` for the existing database. This checkout already has a local file; do not overwrite it. Environment variables `Database__Server`, `Database__Port`, `Database__Name`, `Database__User`, and `Database__Password` can override the file. Never commit credentials or put them in Vite variables. The API uses the existing schema and does not migrate or seed it. For Media Library, also set `Media:PublicRoot` to the Laravel public-disk folder, such as `C:\Ashish\Projects\DiwakarEnterpriseCMS\dss-enterprise-cms\storage\app\public`. The folder must exist and be readable and writable by the API process. This shares the same media files without running Laravel. Restart the API after changing local settings. The browser serves assets through `/api/media/{id}/file`.
 
 3. **Start the .NET API** in a new terminal, from the project root:
 
@@ -58,6 +58,7 @@ To stop the app, press Ctrl+C in the frontend and API terminals. Stop MySQL thro
 ## Local troubleshooting
 
 - `Request unavailable (MySqlException)` on login: check `Test-NetConnection 127.0.0.1 -Port 3306`, then verify the private database host, port, database name, and credentials. The API can start even when MySQL is down; `/api/health` only checks the API process.
+- Media Library returns a service-unavailable message: verify `Media:PublicRoot` points to the existing Laravel `storage\app\public` folder, then restart the API. Do not point it at `frontend\public` or copy the files into this checkout.
 - Frontend cannot reach the API: confirm the .NET terminal says it is listening on `http://127.0.0.1:5088`, then open `http://127.0.0.1:5178/api/health`. A healthy API returns HTTP 200.
 - `npm ci` reports no lockfile: change to the `frontend` directory before running it. Do not generate a separate root lockfile.
 - Port already in use: stop the earlier local API, Vite, or MySQL process using that port before starting another instance. The configured development ports are 5088, 5178, and 3306.
@@ -80,7 +81,7 @@ The backend uses the same MariaDB database as Laravel through MySqlConnector and
 
 ## Authentication
 
-Open /login and use an existing Laravel account. Login opens the protected /admin/dashboard overview for users with admin.access. The overview shows live user, web-role, and web-permission counts. F002 adds capability-gated user and role screens at /admin/users and /admin/roles, backed by the existing Laravel Spatie roles/permissions tables. On the Users page, only Super Admin can see Create Admin; it creates an account with the existing Admin role and its current permissions using a manually supplied initial password. No invitation email is sent. Public registration and a separate ordinary User creation flow remain unavailable. Account links provide password confirmation/change and optional email verification. Logout returns to the public home page.
+Open /login and use an existing Laravel account. Login opens the protected /admin/dashboard overview for users with admin.access. The overview shows live user, web-role, and web-permission counts. F002 adds capability-gated user and role screens at /admin/users and /admin/roles, backed by the existing Laravel Spatie roles/permissions tables. F006 adds `/admin/media` for Super Admin and any Admin explicitly granted `media.manage`. It can upload JPEG, PNG, WebP, and PDF files, browse/filter/search 24 per page, edit Display Name, open assets, and delete unreferenced media. Media files are shared with Laravel through the configured public root; page-section references prevent deletion. On the Users page, only Super Admin can see Create Admin; it creates an account with the existing Admin role and its current permissions using a manually supplied initial password. No invitation email is sent. Public registration and a separate ordinary User creation flow remain unavailable. Account links provide password confirmation/change and optional email verification. Logout returns to the public home page.
 
 In Development, reset and verification messages become private .eml files under backend/.local/mail. Open the local file for the link; files are not web-accessible. They contain sensitive temporary links: never commit/share them or paste them into logs. Links are .NET-specific, expire after 60 minutes, and bind to current account/password state. No real email is sent. Outside Development, recovery/resend fails closed until a mail provider is separately approved and configured.
 
@@ -95,9 +96,19 @@ Set-Location frontend
 npm run test:auth
 ```
 
-The .NET harness creates only dss_enterprise_cms_dotnet_test and nine required test tables, then clears records only within that guarded database. It explicitly replaces the test host's database source to prevent falling back to the shared database. The local account needs permission to create/use this isolated database. Tests never seed or reset dss_enterprise_cms. Test rows and private artifacts may remain in the isolated database and backend/.local/test-mail.
+The .NET harness creates only dss_enterprise_cms_dotnet_test and the required test tables, then clears records only within that guarded database. F006 tests also use a separate guarded directory under `backend/.local/test-media-*` and never write to the Laravel media root. It explicitly replaces the test host's database source to prevent falling back to the shared database. The local account needs permission to create/use this isolated database. Tests never seed or reset dss_enterprise_cms. Test rows and private artifacts may remain in the isolated database and backend/.local/test-mail.
 
 PHP fixtures use C:/xampp/php/php.exe by default; CMS_TEST_PHP can select another PHP executable. Synthetic inputs use stdin, not command-line credentials. Frontend tests use Node's built-in runner and native TypeScript stripping; Node 24.1 emits an experimental-feature warning. No frontend test package was added.
+
+## F006 focused checks
+
+```powershell
+dotnet test tests/Diwakar.Cms.Auth.Tests/Diwakar.Cms.Auth.Tests.csproj --filter FullyQualifiedName~MediaTests
+Set-Location frontend
+node --test tests/media-page.test.mjs
+node --test tests/admin-shell.test.mjs
+npm run build
+```
 
 ## Workflow
 

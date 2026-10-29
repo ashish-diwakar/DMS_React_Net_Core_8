@@ -1,6 +1,7 @@
 using Diwakar.Cms.Api.Authentication;
 using MySqlConnector;
 using Diwakar.Cms.Api.Authorization;
+using Microsoft.AspNetCore.Http.Features;
 
 if(args.Length>0 && args[0]=="provision-super-admin") { await RbacProvisioningCommand.RunAsync(args); return; }
 
@@ -39,6 +40,16 @@ app.Use(async (context, next) =>
             await Results.Json(new { message = "The service is temporarily unavailable. Please try again later." }, statusCode: 503).ExecuteAsync(context);
         }
     }
+});
+app.UseRouting();
+app.Use(async (context, next) =>
+{
+    if (HttpMethods.IsPost(context.Request.Method) && context.Request.Path == "/api/admin/media")
+    {
+        var size = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
+        if (size is { IsReadOnly: false }) size.MaxRequestBodySize = Diwakar.Cms.Api.Media.MediaEndpoints.UploadBodyLimit;
+    }
+    await next(context);
 });
 app.UseRateLimiter();
 app.UseAuthentication();

@@ -5,17 +5,18 @@ import AdminPage from '../admin/AdminPage';
 import AdminShell from '../admin/AdminShell';
 import AdminPageHeading from '../admin/AdminPageHeading';
 import WebsiteSettingsPage from '../admin/WebsiteSettingsPage';
+import MediaPage from '../admin/MediaPage';
 import DashboardSummaryCards, { isDashboardSummary } from '../admin/DashboardSummary';
 import type { DashboardSummary } from '../admin/DashboardSummary';
 
 type User = { id: string; name: string; email: string; emailVerified: boolean; passwordConfirmed: boolean };
-type Authz = { roles:string[]; permissions:string[]; isSuperAdmin:boolean; canAccessAdmin:boolean; canViewUsers:boolean; canAssignRoles:boolean; canViewRoles:boolean; canManagePermissions:boolean; canManageSettings:boolean };
+type Authz = { roles:string[]; permissions:string[]; isSuperAdmin:boolean; canAccessAdmin:boolean; canViewUsers:boolean; canAssignRoles:boolean; canViewRoles:boolean; canManagePermissions:boolean; canManageSettings:boolean; canManageMedia?:boolean };
 const titles: Record<string, string> = {
   '/login': 'Welcome back.', '/forgot-password': 'Forgot your password?', '/reset-password': 'Choose a new password.',
   '/confirm-password': 'Confirm it’s you.', '/change-password': 'Change your password.', '/verify-email': 'Verify your email.',
-  '/admin/dashboard': 'Dashboard', '/admin/users':'Users', '/admin/roles':'Roles and permissions', '/admin/settings':'Website Settings',
+  '/admin/dashboard': 'Dashboard', '/admin/users':'Users', '/admin/roles':'Roles and permissions', '/admin/settings':'Website Settings', '/admin/media':'Media Library',
 };
-const protectedPaths = ['/confirm-password', '/change-password', '/verify-email', '/admin/dashboard','/admin/users','/admin/roles','/admin/settings'];
+const protectedPaths = ['/confirm-password', '/change-password', '/verify-email', '/admin/dashboard','/admin/users','/admin/roles','/admin/settings','/admin/media'];
 
 export default function AuthApp() {
   const path = window.location.pathname;
@@ -128,6 +129,10 @@ export default function AuthApp() {
     {path === '/admin/settings' && <>
       <AdminPageHeading title="Website Settings" description="Manage public website information used by the CMS." />
       {authz.canManageSettings ? <WebsiteSettingsPage /> : <p className="auth-error" role="alert">You do not have permission to manage settings.</p>}
+    </>}
+    {path === '/admin/media' && <>
+      <AdminPageHeading title="Media Library" description="Upload and manage public website assets." />
+      {(authz.isSuperAdmin || authz.permissions.includes('media.manage')) ? <MediaPage /> : <p className="auth-error" role="alert">You do not have permission to manage media.</p>}
     </>}
     {(path==='/admin/users'||path==='/admin/roles')&&<><AdminPageHeading title={path==='/admin/users'?'Users':'Roles'} description={path==='/admin/users'?'View CMS users and manage their assigned primary role.':'Review web roles and manage their permissions.'} /><AdminPage kind={path.endsWith('users')?'users':'roles'} authz={authz}/></>}
   </AdminShell>;

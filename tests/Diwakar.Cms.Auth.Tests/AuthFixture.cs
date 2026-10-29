@@ -23,6 +23,7 @@ public sealed class AuthFixture : IAsyncLifetime
     public string Root { get; } = FindRoot();
     public string ConnectionString { get; private set; } = "";
     public string MailDirectory => Path.Combine(Root, "backend", ".local", "test-mail");
+    public string MediaDirectory { get; } = Path.Combine(FindRoot(), "backend", ".local", "test-media-" + Guid.NewGuid().ToString("N"));
     private readonly Lazy<string> seedHash = new(() => new PasswordHasher().Hash("existing-password"));
 
     private static string FindRoot()
@@ -75,6 +76,9 @@ public sealed class AuthFixture : IAsyncLifetime
                 x_twitter_url VARCHAR(2048) NULL, footer_text VARCHAR(500) NULL,
                 created_at TIMESTAMP NULL, updated_at TIMESTAMP NULL)
             """);
+        Directory.CreateDirectory(MediaDirectory);
+        await ExecuteAsync("CREATE TABLE IF NOT EXISTS media (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, original_name VARCHAR(255) NOT NULL, title VARCHAR(255) NULL, disk VARCHAR(50) NOT NULL, path VARCHAR(255) NOT NULL, mime_type VARCHAR(100) NOT NULL, size BIGINT UNSIGNED NOT NULL, width INT UNSIGNED NULL, height INT UNSIGNED NULL, created_at TIMESTAMP NULL, updated_at TIMESTAMP NULL, INDEX(created_at,id))");
+        await ExecuteAsync("CREATE TABLE IF NOT EXISTS page_sections (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, media_id BIGINT UNSIGNED NULL, CONSTRAINT test_page_sections_media_fk FOREIGN KEY(media_id) REFERENCES media(id) ON DELETE RESTRICT)");
         foreach(var name in Diwakar.Cms.Api.Authorization.RbacStore.ManagedPermissions) await ExecuteAsync("INSERT IGNORE INTO permissions(name,guard_name) VALUES(@name,'web')",("@name",name));
         await ExecuteAsync("INSERT IGNORE INTO roles(name,guard_name) VALUES('Admin','web'),('Super Admin','web')");
         await ExecuteAsync("INSERT IGNORE INTO role_has_permissions(permission_id,role_id) SELECT p.id,r.id FROM permissions p JOIN roles r ON r.name='Admin' AND r.guard_name='web' WHERE p.guard_name='web' AND p.name IN ('admin.access','users.view','roles.view')");
@@ -101,6 +105,8 @@ public sealed class AuthFixture : IAsyncLifetime
         await ExecuteAsync("DELETE FROM password_reset_tokens");
         await ExecuteAsync("DELETE FROM sessions");
         await ExecuteAsync("DELETE FROM website_settings");
+        await ExecuteAsync("DELETE FROM page_sections");
+        await ExecuteAsync("DELETE FROM media");
         await ExecuteAsync("DELETE rp FROM role_has_permissions rp JOIN roles r ON r.id=rp.role_id WHERE r.name='Admin' AND r.guard_name='web'");
         await ExecuteAsync("INSERT IGNORE INTO role_has_permissions(permission_id,role_id) SELECT p.id,r.id FROM permissions p JOIN roles r ON r.name='Admin' AND r.guard_name='web' WHERE p.guard_name='web' AND p.name IN ('admin.access','users.view','roles.view')");
     }
@@ -117,7 +123,16 @@ public sealed class AuthFixture : IAsyncLifetime
 
     public Task GrantRoleAsync(CmsUser user,string role) => ExecuteAsync("INSERT INTO model_has_roles(role_id,model_type,model_id) SELECT id,@model,@user FROM roles WHERE name=@role AND guard_name='web'",("@model","App\\Models\\User"),("@user",user.Id),("@role",role));
     public Factory CreateFactory() => new(this);
-    public Task DisposeAsync() => Task.CompletedTask;
+    public Task DisposeAsync()
+    {
+        var allowed = Path.Combine(Root, "backend", ".local");
+        var target = Path.GetFullPath(MediaDirectory);
+        if (!target.StartsWith(Path.GetFullPath(allowed) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+            || !Path.GetFileName(target).StartsWith("test-media-", StringComparison.Ordinal))
+            throw new InvalidOperationException("Unsafe media test cleanup path.");
+        if (Directory.Exists(target)) Directory.Delete(target, recursive: true);
+        return Task.CompletedTask;
+    }
 
     public sealed class Factory(AuthFixture fixture) : WebApplicationFactory<Program>
     {
@@ -132,6 +147,7 @@ public sealed class AuthFixture : IAsyncLifetime
             {
                 ["Database:Name"] = TestDatabase,
                 ["Authentication:MailDirectory"] = fixture.MailDirectory,
+                ["Media:PublicRoot"] = fixture.MediaDirectory,
             }));
             builder.ConfigureServices(services =>
             {
@@ -140,6 +156,11 @@ public sealed class AuthFixture : IAsyncLifetime
                     throw new InvalidOperationException("Unsafe test host database.");
                 services.RemoveAll<MySqlDataSource>();
                 services.AddSingleton(_ => new MySqlDataSourceBuilder(fixture.ConnectionString).Build());
+                services.RemoveAll<Diwakar.Cms.Api.Media.MediaStore>();
+                services.AddScoped(provider => new Diwakar.Cms.Api.Media.MediaStore(
+                    provider.GetRequiredService<MySqlDataSource>(),
+                    new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+                    { ["Media:PublicRoot"] = fixture.MediaDirectory }).Build()));
                 services.RemoveAll<TimeProvider>();
                 services.AddSingleton<TimeProvider>(Clock);
                 services.Configure<DataProtectionTokenProviderOptions>(options => options.TokenLifespan = TokenLife);
