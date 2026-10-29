@@ -4,6 +4,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Diwakar.Cms.Api.Authorization;
+using Diwakar.Cms.Api.Settings;
 
 namespace Diwakar.Cms.Api.Authentication;
 
@@ -134,7 +135,8 @@ public static class AuthEndpoints
             var state = await rbac.GetAsync(Current(context).Id, ct);
             return Results.Ok(new { roles = state.Roles, permissions = state.Permissions.Order(StringComparer.Ordinal), isSuperAdmin = state.IsSuperAdmin,
                 canAccessAdmin = state.Allows("admin.access"), canViewUsers = state.Allows("users.view"), canAssignRoles = state.Allows("users.assign_roles"),
-                canViewRoles = state.Allows("roles.view"), canManagePermissions = state.Allows("roles.manage_permissions") });
+                canViewRoles = state.Allows("roles.view"), canManagePermissions = state.Allows("roles.manage_permissions"),
+                canManageSettings = state.Allows("settings.manage") });
         }).RequireAuthorization();
 
         var admin = app.MapGroup("/api/admin").RequireAuthorization().AddEndpointFilter(async (invocation, next) =>
@@ -153,6 +155,23 @@ public static class AuthEndpoints
         });
         admin.MapGet("/dashboard", async (HttpContext context, RbacStore rbac, CancellationToken ct) =>
             Results.Ok(await rbac.DashboardAsync((RbacSnapshot)context.Items[typeof(RbacSnapshot)]!, ct))).RequireAuthorization();
+        admin.MapGet("/settings", async (HttpContext context, WebsiteSettingsStore settings, CancellationToken ct) =>
+        {
+            var actor = (RbacSnapshot)context.Items[typeof(RbacSnapshot)]!;
+            return actor.Allows("settings.manage")
+                ? Results.Ok(await settings.ReadAsync(ct))
+                : Results.Json(new { message = "You do not have permission to manage settings." }, statusCode: 403);
+        });
+        admin.MapPatch("/settings", async (WebsiteSettingsInput input, HttpContext context, WebsiteSettingsStore settings, CancellationToken ct) =>
+        {
+            var actor = (RbacSnapshot)context.Items[typeof(RbacSnapshot)]!;
+            if (!actor.Allows("settings.manage"))
+                return Results.Json(new { message = "You do not have permission to manage settings." }, statusCode: 403);
+            if (!WebsiteSettingsStore.TryValidate(input, out var value, out var errors))
+                return Results.Json(new { message = "Correct the highlighted fields.", errors }, statusCode: 400);
+            await settings.SaveAsync(value!, ct);
+            return Results.Ok(new { message = "Website settings updated.", settings = value });
+        });
         admin.MapGet("/users", async (HttpContext context,RbacStore rbac,CancellationToken ct) => { var s=await rbac.GetAsync(Current(context).Id,ct); return s.Allows("users.view")?Results.Ok(new { users=await rbac.UsersAsync(ct), roles=await rbac.AssignmentRolesAsync(ct) }):Results.Json(new {message="You do not have permission to view users."},statusCode:403); });
         admin.MapPost("/users", async (CreateAdminInput input, HttpContext context, RbacStore rbac, CancellationToken ct) =>
         {

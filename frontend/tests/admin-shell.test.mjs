@@ -18,7 +18,7 @@ function render(authz, path) {
 
 const base = {
   roles: ['Admin'], permissions: [], isSuperAdmin: false,
-  canAccessAdmin: true, canViewUsers: false, canViewRoles: false,
+  canAccessAdmin: true, canViewUsers: false, canViewRoles: false, canManageSettings: false,
 };
 
 test('shell keeps identity, mobile controls, content and logout in one layout', () => {
@@ -40,4 +40,12 @@ test('navigation omits unavailable destinations and only marks the current route
   assert.doesNotMatch(html, /href="\/admin\/roles"/);
   assert.doesNotMatch(html, /href="\/admin\/(settings|media|pages)"/);
   assert.doesNotMatch(html, /aria-current="page"[^>]*href="\/admin\/users"/);
+});
+
+test('Settings becomes an active link only for an authorized account', () => {
+  const allowed = render({ ...base, canManageSettings: true }, '/admin/settings');
+  assert.match(allowed, /href="\/admin\/settings"[^>]*aria-current="page"/);
+  assert.doesNotMatch(allowed, /Settings<\/span>/);
+  const denied = render(base, '/admin/settings');
+  assert.doesNotMatch(denied, /href="\/admin\/settings"/);
 });

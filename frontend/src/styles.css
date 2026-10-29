@@ -163,6 +163,22 @@ fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .dashboard-metric .dashboard-view-link { margin-top: var(--space-4); font-weight: 500; --tw-text-opacity: 1; color: rgb(51 65 85 / var(--tw-text-opacity, 1)); font-size: 0.875rem;  line-height: 1.25rem;}
 .dashboard-metric .dashboard-view-link:hover { --tw-bg-opacity: 1; background-color: rgb(248 250 252 / var(--tw-bg-opacity, 1));   --tw-text-opacity: 1; color: rgb(51 65 85 / var(--tw-text-opacity, 1)); }
 
+/* Website Settings */
+.settings-notice { min-height: 46px; display: flex; align-items: center; margin: 0 0 var(--space-6); padding: var(--space-3) var(--space-4); border: 1px solid; border-radius: 6px; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; scroll-margin-top: calc(var(--admin-topbar-height) + var(--space-5)); }
+.settings-notice-success { border-color: #a7f3d0; background: #ecfdf5; color: #065f46; }
+.settings-notice-error { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
+.settings-form fieldset { display: grid; gap: var(--space-4); }
+.settings-section { padding: var(--space-6); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: 0 1px 2px #1720330a; }
+.settings-section h2 { margin: 0 0 var(--space-5); font-size: 17px; font-weight: 600; }
+.settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
+.settings-field { min-width: 0; display: grid; align-content: start; gap: var(--space-2); color: #34445d; font-size: 13px; font-weight: 600; }
+.settings-field-wide { grid-column: 1 / -1; }
+.settings-field input, .settings-field textarea { width: 100%; min-height: 42px; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: var(--ink); font: inherit; font-weight: 400; }
+.settings-field textarea { resize: vertical; }
+.settings-field input[aria-invalid="true"], .settings-field textarea[aria-invalid="true"] { border-color: #b42318; }
+.settings-field-error { color: #b42318; font-size: 12px; font-weight: 400; }
+.settings-save { justify-self: start; min-height: 38px; font-size: 13px; }
+
 @media (max-width: 900px) {
   .workspace { padding: 0 7%; }
   .site-header { min-height: 76px; }
@@ -180,6 +196,8 @@ fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
   .admin-backdrop { display: block; position: fixed; z-index: 25; inset: 0; border: 0; background: #02081966; }
   .admin-main { padding: var(--space-5) var(--space-4) 40px; }
   .admin-create-grid { grid-template-columns: 1fr; }
+  .settings-grid { grid-template-columns: 1fr; }
+  .settings-section { padding: var(--space-5); }
   .admin-users-table { min-width: 680px; }
   .permissions-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashboard-metrics { grid-template-columns: 1fr; }

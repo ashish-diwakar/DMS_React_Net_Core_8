@@ -12,6 +12,7 @@ test('return paths stay on the approved local account pages', () => {
     assert.equal(safeReturnPath('/change-password'), '/change-password');
     assert.equal(safeReturnPath('/admin/users'), '/admin/users');
     assert.equal(safeReturnPath('/admin/roles'), '/admin/roles');
+    assert.equal(safeReturnPath('/admin/settings'), '/admin/settings');
     assert.equal(safeReturnPath('/verify-email?token=synthetic'), '/verify-email?token=synthetic');
   } finally { globalThis.window = previous; }
 });
@@ -38,5 +39,18 @@ test('writes obtain fresh CSRF tokens and use same-origin cookies; rejected CSRF
     };
     await assert.rejects(api('/api/auth/logout', 'POST', {}), error => error instanceof ApiError && error.status === 400);
     assert.equal(writes, 2);
+  } finally { globalThis.fetch = original; }
+});
+
+test('settings validation details reach the form through the API error', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => Response.json({
+    message: 'Correct the highlighted fields.',
+    errors: { publicEmail: 'Enter a valid public email address.' },
+  }, { status: 400 });
+  try {
+    await assert.rejects(api('/api/admin/settings'), error =>
+      error instanceof ApiError && error.status === 400
+      && error.fieldErrors.publicEmail === 'Enter a valid public email address.');
   } finally { globalThis.fetch = original; }
 });

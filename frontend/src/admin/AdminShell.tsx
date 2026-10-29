@@ -10,10 +10,10 @@ type Authz = {
   canAccessAdmin: boolean;
   canViewUsers: boolean;
   canViewRoles: boolean;
+  canManageSettings: boolean;
 };
 
 const laterModules = [
-  { label: 'Settings', permission: 'settings.manage' },
   { label: 'Media Library', permission: 'media.manage' },
   { label: 'Pages', permission: 'pages.manage' },
 ];
@@ -118,6 +118,7 @@ export default function AdminShell({ user, authz, path, children }: {
         <p className="admin-nav-group">Administration</p>
         {authz.canViewUsers && navLink('Users', '/admin/users', path === '/admin/users')}
         {authz.canViewRoles && navLink('Roles', '/admin/roles', path === '/admin/roles')}
+        {authz.canManageSettings && navLink('Settings', '/admin/settings', path === '/admin/settings')}
         {laterModules.filter(item => authz.isSuperAdmin || authz.permissions.includes(item.permission)).map(item =>
           <span key={item.label} className="admin-nav-link disabled" aria-disabled="true" title="This module is not available in F002">
             <span className="admin-nav-dot" aria-hidden="true" />{item.label}

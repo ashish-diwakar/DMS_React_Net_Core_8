@@ -65,6 +65,16 @@ public sealed class AuthFixture : IAsyncLifetime
         await ExecuteAsync("CREATE TABLE IF NOT EXISTS model_has_permissions (permission_id BIGINT UNSIGNED NOT NULL,model_type VARCHAR(255) NOT NULL,model_id BIGINT UNSIGNED NOT NULL,PRIMARY KEY(permission_id,model_id,model_type),KEY model_has_permissions_model_id_model_type_index(model_id,model_type))");
         await ExecuteAsync("CREATE TABLE IF NOT EXISTS role_has_permissions (permission_id BIGINT UNSIGNED NOT NULL,role_id BIGINT UNSIGNED NOT NULL,PRIMARY KEY(permission_id,role_id))");
         await ExecuteAsync("CREATE TABLE IF NOT EXISTS cache (`key` VARCHAR(255) PRIMARY KEY,value MEDIUMTEXT NOT NULL,expiration INT NOT NULL,KEY cache_expiration_index(expiration))");
+        await ExecuteAsync("""
+            CREATE TABLE IF NOT EXISTS website_settings (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, site_name VARCHAR(120) NOT NULL,
+                tagline VARCHAR(180) NULL, public_email VARCHAR(255) NULL,
+                primary_phone VARCHAR(50) NULL, secondary_phone VARCHAR(50) NULL, address TEXT NULL,
+                facebook_url VARCHAR(2048) NULL, instagram_url VARCHAR(2048) NULL,
+                linkedin_url VARCHAR(2048) NULL, youtube_url VARCHAR(2048) NULL,
+                x_twitter_url VARCHAR(2048) NULL, footer_text VARCHAR(500) NULL,
+                created_at TIMESTAMP NULL, updated_at TIMESTAMP NULL)
+            """);
         foreach(var name in Diwakar.Cms.Api.Authorization.RbacStore.ManagedPermissions) await ExecuteAsync("INSERT IGNORE INTO permissions(name,guard_name) VALUES(@name,'web')",("@name",name));
         await ExecuteAsync("INSERT IGNORE INTO roles(name,guard_name) VALUES('Admin','web'),('Super Admin','web')");
         await ExecuteAsync("INSERT IGNORE INTO role_has_permissions(permission_id,role_id) SELECT p.id,r.id FROM permissions p JOIN roles r ON r.name='Admin' AND r.guard_name='web' WHERE p.guard_name='web' AND p.name IN ('admin.access','users.view','roles.view')");
@@ -90,6 +100,7 @@ public sealed class AuthFixture : IAsyncLifetime
         await ExecuteAsync("DELETE FROM users");
         await ExecuteAsync("DELETE FROM password_reset_tokens");
         await ExecuteAsync("DELETE FROM sessions");
+        await ExecuteAsync("DELETE FROM website_settings");
         await ExecuteAsync("DELETE rp FROM role_has_permissions rp JOIN roles r ON r.id=rp.role_id WHERE r.name='Admin' AND r.guard_name='web'");
         await ExecuteAsync("INSERT IGNORE INTO role_has_permissions(permission_id,role_id) SELECT p.id,r.id FROM permissions p JOIN roles r ON r.name='Admin' AND r.guard_name='web' WHERE p.guard_name='web' AND p.name IN ('admin.access','users.view','roles.view')");
     }
