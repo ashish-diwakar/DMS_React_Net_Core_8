@@ -1,34 +1,66 @@
 # Diwakar Enterprise CMS — React and .NET
 
-A separate React/TypeScript frontend and ASP.NET Core 8 backend. The foundation and F001 authentication are Complete. F002 RBAC is implemented and awaiting user code review. F003–F008 are not implemented yet.
+A separate React/TypeScript frontend and ASP.NET Core 8 backend. The foundation, F001 authentication, and F002 RBAC are Complete. F003 admin shell is under review; F004–F008 are not implemented yet.
 
 ## Requirements
 
-- .NET 8 SDK; global.json selects an installed .NET 8 SDK and permits newer .NET 8 feature bands.
-- Node.js and npm compatible with the locked frontend dependencies. Use the existing local Node 24 installation.
-- The existing local MariaDB service must be running for authentication. The public health endpoint does not check database connectivity.
+- .NET 8 SDK (`global.json` selects an installed .NET 8 SDK).
+- Node.js 24 and npm, compatible with the locked frontend packages.
+- The existing MariaDB/MySQL database. On this Windows workstation it is installed through XAMPP at `C:\xampp`; the server listens on `127.0.0.1:3306`.
+- An existing CMS login with `admin.access`. The application does not create or seed users when it starts.
 
-## Private local configuration
+## Run locally (Windows PowerShell)
 
-The current workspace has an ignored backend/appsettings.Local.json configured from Laravel's existing database settings without printing credentials. For a new checkout, copy backend/appsettings.Local.example.json to backend/appsettings.Local.json only if the local file does not already exist, then privately fill in the existing database credentials. Never overwrite another developer's settings or commit credentials. Environment variables Database__Server, Database__Port, Database__Name, Database__User, and Database__Password override this file.
+Run the following steps in order. Laravel does **not** need to be running; the React and .NET applications use its existing database directly.
 
-The API maps existing users and never initializes, migrates, or seeds the application database. The local settings file and all backend/.local artifacts are excluded from Git and backend build/publish content.
+1. **Start the database.** Either Open XAMPP & start "Apache & MySQL" or Open `C:\xampp\xampp-control.exe` and click **Start** beside **MySQL**. Alternatively, run `& 'C:\xampp\mysql_start.bat'` in a separate terminal and keep that terminal open. Use one startup method, not both. Confirm the server port before continuing:
 
-Active project root: C:\Ashish\Projects\DiwakarEnterpriseCMS\DMS_React_Net_Core_8. Run commands from this folder. Use two terminals:
+   ```powershell
+   Test-NetConnection 127.0.0.1 -Port 3306
+   ```
 
-```powershell
-# Terminal 1 — backend at http://127.0.0.1:5088
-dotnet run --project backend/Diwakar.Cms.Api.csproj --launch-profile local
-```
+   Continue when `TcpTestSucceeded` is `True`. The XAMPP server's `[mysqld]` port is 3306; its `[client]` default is 3307, so a manual `mysql.exe` connection should explicitly select port 3306.
 
-```powershell
-# Terminal 2 — frontend at http://127.0.0.1:5178
-Set-Location frontend
-npm ci
-npm run dev
-```
+2. **Check the private backend configuration.** From the project root, create the ignored local settings file only if it is absent:
 
-Open http://127.0.0.1:5178. On page load, the frontend requests /api/health through Vite's local proxy. The backend health endpoint returns Healthy when the process is available; it does not check database connectivity. If the backend is unavailable when the page loads, the frontend displays Service unavailable after the request fails or times out. Reload the page to check again; this foundation does not continuously monitor the service.
+   ```powershell
+   Set-Location C:\Ashish\Projects\DiwakarEnterpriseCMS\DMS_React_Net_Core_8
+   if (-not (Test-Path backend/appsettings.Local.json)) {
+       Copy-Item backend/appsettings.Local.example.json backend/appsettings.Local.json
+   }
+   ```
+
+   Open `backend/appsettings.Local.json` privately and set `Database:Server`, `Port`, `Name`, `User`, and `Password` for the existing database. This checkout already has a local file; do not overwrite it. Environment variables `Database__Server`, `Database__Port`, `Database__Name`, `Database__User`, and `Database__Password` can override the file. Never commit credentials or put them in Vite variables. The API uses the existing schema and does not migrate or seed it.
+
+3. **Start the .NET API** in a new terminal, from the project root:
+
+   ```powershell
+   Set-Location C:\Ashish\Projects\DiwakarEnterpriseCMS\DMS_React_Net_Core_8
+   dotnet run --project backend/Diwakar.Cms.Api.csproj --launch-profile local
+   ```
+
+   Keep it running at `http://127.0.0.1:5088`.
+
+4. **Install and start the React frontend** in another terminal:
+
+   ```powershell
+   Set-Location C:\Ashish\Projects\DiwakarEnterpriseCMS\DMS_React_Net_Core_8\frontend
+   npm ci
+   npm run dev
+   ```
+
+   Run `npm ci` inside `frontend`, which contains `package-lock.json`; running it at the project root produces npm `EUSAGE`. You need `npm ci` on first setup or when the lockfile changes, not on every start. Keep Vite running at `http://127.0.0.1:5178`.
+
+5. Open `http://127.0.0.1:5178/login` and sign in with an existing authorized CMS account. The frontend proxies `/api` to the .NET API; .NET reads the shared database directly. The protected admin dashboard is at `/admin/dashboard`.
+
+To stop the app, press Ctrl+C in the frontend and API terminals. Stop MySQL through XAMPP Control Panel, or stop its dedicated batch-file terminal if you used that method.
+
+## Local troubleshooting
+
+- `Request unavailable (MySqlException)` on login: check `Test-NetConnection 127.0.0.1 -Port 3306`, then verify the private database host, port, database name, and credentials. The API can start even when MySQL is down; `/api/health` only checks the API process.
+- Frontend cannot reach the API: confirm the .NET terminal says it is listening on `http://127.0.0.1:5088`, then open `http://127.0.0.1:5178/api/health`. A healthy API returns HTTP 200.
+- `npm ci` reports no lockfile: change to the `frontend` directory before running it. Do not generate a separate root lockfile.
+- Port already in use: stop the earlier local API, Vite, or MySQL process using that port before starting another instance. The configured development ports are 5088, 5178, and 3306.
 
 ## Focused checks
 
@@ -69,7 +101,7 @@ PHP fixtures use C:/xampp/php/php.exe by default; CMS_TEST_PHP can select anothe
 
 ## Workflow
 
-Read AGENTS.md and the active docs/F001_AUTHENTICATION.md. Implementation review precedes final validation; completion requires explicit approval. Each feature has its own approval gates. The original Laravel project remains independently runnable.
+Read AGENTS.md and the active feature document in docs/. Implementation review precedes final validation; completion requires explicit approval. Each feature has its own approval gates. The original Laravel project remains independently runnable.
 
 
 ## F002 role management

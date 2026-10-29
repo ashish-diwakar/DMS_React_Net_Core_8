@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { api, ApiError, safeReturnPath } from './api';
 import AdminPage from '../admin/AdminPage';
 import AdminShell from '../admin/AdminShell';
+import AdminPageHeading from '../admin/AdminPageHeading';
 
 type User = { id: string; name: string; email: string; emailVerified: boolean; passwordConfirmed: boolean };
 type DashboardStats = { userCount:number; roleCount:number; permissionCount:number };
@@ -94,14 +95,11 @@ export default function AuthApp() {
 
   const showForm = known && !path.startsWith('/admin/') && path !== '/verify-email' && (!protectedPaths.includes(path) || user);
 
-  if(path.startsWith('/admin/') && user && authz) return <AdminShell user={user} authz={authz} path={path}>
+  if(path.startsWith('/admin/') && user && authz?.canAccessAdmin) return <AdminShell user={user} authz={authz} path={path}>
     {error&&<p className="auth-error" role="alert">{error}</p>}{message&&<p className="auth-success" role="status">{message}</p>}
     {path === '/admin/dashboard' && authz.canAccessAdmin && (
       <section className="admin-dashboard">
-        <header className="admin-page-heading">
-          <h1>Dashboard</h1>
-          <p>Overview of the currently available CMS administration areas.</p>
-        </header>
+        <AdminPageHeading title="Dashboard" description="Overview of the currently available CMS administration areas." />
         {dashboard ? (<>
           <section className="dashboard-overview">
             <h2>CMS overview</h2>
@@ -142,8 +140,7 @@ export default function AuthApp() {
         </section>
       </section>
     )}
-    {path==='/admin/dashboard'&&!authz.canAccessAdmin&&<p className="auth-error" role="alert">You do not have access to this area.</p>}
-    {(path==='/admin/users'||path==='/admin/roles')&&<><header className="admin-page-heading"><h1>{path==='/admin/users'?'Users':'Roles'}</h1><p>{path==='/admin/users'?'View CMS users and manage their assigned primary role.':'Review web roles and manage their permissions.'}</p></header><AdminPage kind={path.endsWith('users')?'users':'roles'} authz={authz}/></>}
+    {(path==='/admin/users'||path==='/admin/roles')&&<><AdminPageHeading title={path==='/admin/users'?'Users':'Roles'} description={path==='/admin/users'?'View CMS users and manage their assigned primary role.':'Review web roles and manage their permissions.'} /><AdminPage kind={path.endsWith('users')?'users':'roles'} authz={authz}/></>}
   </AdminShell>;
 
   return (
@@ -178,7 +175,13 @@ export default function AuthApp() {
             </fieldset>
             {path === '/forgot-password' && <p className="auth-hint">Enter your account email to request a reset link.</p>}
           </form>}
-          {path === '/admin/dashboard' && user && authz?.canAccessAdmin && <p>Welcome, {user.name}.</p>}
+          {path.startsWith('/admin/') && user && authz && !authz.canAccessAdmin && <>
+            <p className="auth-error" role="alert">You do not have access to CMS administration.</p>
+            <button className="auth-button secondary" disabled={busy} onClick={() => void perform(async () => {
+              await api('/api/auth/logout', 'POST', {});
+              window.location.assign('/login');
+            })}>{busy ? 'Signing out…' : 'Sign out'}</button>
+          </>}
           {path === '/verify-email' && user && <>
             <p>{user.emailVerified ? 'Your email is verified.' : `Confirm that ${user.email} belongs to you.`}</p>
             {!user.emailVerified && <>

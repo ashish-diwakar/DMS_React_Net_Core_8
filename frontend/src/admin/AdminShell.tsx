@@ -30,6 +30,9 @@ export default function AdminShell({ user, authz, path, children }: {
   const [signOutError, setSignOutError] = useState('');
   const profileRef = useRef<HTMLDivElement>(null);
   const profileButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileToggleRef = useRef<HTMLButtonElement>(null);
+  const mobileCloseRef = useRef<HTMLButtonElement>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
   const role = authz.isSuperAdmin ? 'Super Admin' : authz.roles[0] ?? 'User';
   const initial = user.name.trim().charAt(0).toUpperCase() || 'U';
 
@@ -51,6 +54,36 @@ export default function AdminShell({ user, authz, path, children }: {
       document.removeEventListener('keydown', closeOnEscape);
     };
   }, [profileOpen]);
+
+  function closeMobileNavigation() {
+    setMobileOpen(false);
+    mobileToggleRef.current?.focus();
+  }
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    mobileCloseRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeMobileNavigation();
+      } else if (event.key === 'Tab') {
+        const controls = sidebarRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])');
+        if (!controls?.length) return;
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [mobileOpen]);
 
   async function signOut() {
     if (signingOut) return;
@@ -77,8 +110,8 @@ export default function AdminShell({ user, authz, path, children }: {
   );
 
   return <div className="admin-shell">
-    <aside className={`admin-sidebar${mobileOpen ? ' open' : ''}`}>
-      <a className="admin-brand" href="/admin/dashboard">Diwakar Enterprise CMS</a>
+    <aside ref={sidebarRef} id="admin-sidebar" className={`admin-sidebar${mobileOpen ? ' open' : ''}`} role={mobileOpen ? 'dialog' : undefined} aria-modal={mobileOpen ? true : undefined} aria-label={mobileOpen ? 'Admin navigation panel' : undefined}>
+      <div className="admin-sidebar-header"><a className="admin-brand" href="/admin/dashboard">Diwakar Enterprise CMS</a><button ref={mobileCloseRef} className="admin-sidebar-close" type="button" aria-label="Close navigation" onClick={closeMobileNavigation}>×</button></div>
       <nav className="admin-nav" aria-label="Primary navigation">
         <p className="admin-nav-group">General</p>
         {navLink('Dashboard', '/admin/dashboard', path === '/admin/dashboard')}
@@ -92,10 +125,10 @@ export default function AdminShell({ user, authz, path, children }: {
         )}
       </nav>
     </aside>
-    {mobileOpen && <button className="admin-backdrop" aria-label="Close navigation" onClick={() => setMobileOpen(false)} />}
+    {mobileOpen && <button className="admin-backdrop" type="button" aria-label="Close navigation" tabIndex={-1} onClick={closeMobileNavigation} />}
     <div className="admin-app-area">
       <header className="admin-topbar">
-        <button className="admin-menu-toggle" aria-label="Open navigation" aria-expanded={mobileOpen} onClick={() => setMobileOpen(!mobileOpen)}>☰</button>
+        <button ref={mobileToggleRef} className="admin-menu-toggle" type="button" aria-label="Open navigation" aria-controls="admin-sidebar" aria-expanded={mobileOpen} onClick={() => { setProfileOpen(false); setMobileOpen(true); }}>☰</button>
         <span className="admin-topbar-title">Diwakar Enterprise CMS</span>
         <div className="admin-user" ref={profileRef}>
           <button ref={profileButtonRef} className="admin-user-trigger" type="button"

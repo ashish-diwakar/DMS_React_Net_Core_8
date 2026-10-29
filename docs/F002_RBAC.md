@@ -1,6 +1,6 @@
 # F002 — Roles, Permissions and Super Admin (.NET port)
 
-Status: In Progress
+Status: Complete
 
 ## Objective and authority
 
@@ -136,4 +136,4 @@ Acceptance review: authentication and admin access are enforced server-side; rol
 
 Final checks: isolated .NET tests 34 passed, 0 failed/skipped; frontend authentication tests 2 passed, 0 failed; TypeScript/Vite production build passed. Security, validation, authorization, database, migration, regression, and final diff review found no unresolved F002 code issue, schema migration, tracked dependency change, secret, debug artifact, or unrelated feature. Tests did not write to the shared application database. README and shared-database documentation reflect the approved behavior. No architecture document or ADR change was required.
 
-Status remains In Progress until the user's post-validation final approval to mark F002 Complete. The agent has not created a commit or used any Git remote.
+The user gave post-validation final approval on 2026-10-29. F002 is Complete. The agent has not created a commit or used any Git remote.
