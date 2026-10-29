@@ -1,6 +1,6 @@
 # F004 — Admin Dashboard (.NET port)
 
-Status: Ready for Final Approval
+Status: Complete
 
 ## Source and order
 
@@ -76,4 +76,4 @@ After reviewing the dashboard, the user indicated that F004 appeared complete an
 
 Final security, validation, authorization, migration, regression, and diff reviews found the dashboard still requires authentication and `admin.access`; its server-side response limits Admin to their personal role and effective permissions, exposing a global user count only with `users.view`. Client links also follow view permissions. Existing account actions remain available, and the dashboard has a clear unavailable state. No new package, migration, schema change, Laravel change, future-module work, secret, debug code, or remote Git operation was introduced. The F003 completion-document edit predated F004 and remains separate from this feature's work.
 
-F004 is ready for the user's final approval. It must not be marked Complete, and F005 must not begin, until that approval is given.
+The user gave final approval on 2026-10-29. F004 is Complete. F005 Website Settings is next in the approved roadmap and requires separate permission before analysis begins.
