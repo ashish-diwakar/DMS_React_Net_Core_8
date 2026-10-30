@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
 
 const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
-const { default: AdminShell } = await vite.ssrLoadModule('/src/admin/AdminShell.tsx');
+const { default: AdminShell } = await vite.ssrLoadModule('/src/components/layout/AdminShell.tsx');
 
 test.after(async () => { await vite.close(); });
 

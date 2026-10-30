@@ -87,6 +87,8 @@ F007 adds `/admin/pages` for Super Admin and accounts explicitly granted `pages.
 
 F008 adds Page Sections at /admin/pages/{id}/sections for Super Admin and accounts explicitly granted pages.manage. It supports Hero, Text Content, and Image with Text, with create/edit, Move Up/Down, Enabled/Disabled, deletion, and a single-image picker from existing public Media. Page and Media deletion remain blocked while referenced. Public section rendering is deferred. See docs/F008_PAGE_SECTIONS.md.
 
+The F001–F006 React component extraction is Complete. Reusable UI now lives in frontend/src/components by feature; see docs/COMPONENT_EXTRACTION.md.
+
 In Development, reset and verification messages become private .eml files under backend/.local/mail. Open the local file for the link; files are not web-accessible. They contain sensitive temporary links: never commit/share them or paste them into logs. Links are .NET-specific, expire after 60 minutes, and bind to current account/password state. No real email is sent. Outside Development, recovery/resend fails closed until a mail provider is separately approved and configured.
 
 Ordinary authentication uses a browser-session cookie and a 120-minute ticket. Remember me persists a cookie for the existing Laravel duration of 400 days. Sessions are separate; a shared password change invalidates stale .NET cookies. Password changes also rotate Laravel's remember_token; existing Laravel sessions and independently managed reset links follow Laravel's own behavior. See docs/SHARED_DATABASE.md.

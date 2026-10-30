@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { api, ApiError } from '../auth/api';
+import { api, ApiError } from '../../auth/api';
 
 type User = { name: string };
 type Authz = {

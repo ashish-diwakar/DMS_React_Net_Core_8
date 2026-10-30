@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { api, ApiError, safeReturnPath } from './api';
+import AuthForm from '../components/auth/AuthForm';
 import AdminPage from '../admin/AdminPage';
-import AdminShell from '../admin/AdminShell';
-import AdminPageHeading from '../admin/AdminPageHeading';
+import AdminShell from '../components/layout/AdminShell';
+import AdminPageHeading from '../components/layout/AdminPageHeading';
 import WebsiteSettingsPage from '../admin/WebsiteSettingsPage';
 import MediaPage from '../admin/MediaPage';
 import PageIndex from '../admin/pages/PageIndex';
 import PageEditor from '../admin/pages/PageEditor';
 import SectionIndex from '../admin/sections/SectionIndex';
 import SectionEditor from '../admin/sections/SectionEditor';
-import DashboardSummaryCards, { isDashboardSummary } from '../admin/DashboardSummary';
-import type { DashboardSummary } from '../admin/DashboardSummary';
+import DashboardSummaryCards, { isDashboardSummary } from '../components/dashboard/DashboardSummary';
+import type { DashboardSummary } from '../components/dashboard/DashboardSummary';
+import DashboardAccountCard from '../components/dashboard/DashboardAccountCard';
 
 type User = { id: string; name: string; email: string; emailVerified: boolean; passwordConfirmed: boolean };
 type Authz = { roles:string[]; permissions:string[]; isSuperAdmin:boolean; canAccessAdmin:boolean; canViewUsers:boolean; canAssignRoles:boolean; canViewRoles:boolean; canManagePermissions:boolean; canManageSettings:boolean; canManageMedia?:boolean };
@@ -105,12 +107,6 @@ export default function AuthApp() {
     });
   }
 
-  const passwordField = (name: string, label: string, current = false) => (
-    <label className="auth-field" key={name}>{label}
-      <input name={name} type="password" required autoComplete={current ? 'current-password' : 'new-password'} minLength={current ? undefined : 8} />
-    </label>
-  );
-
   const showForm = known && !path.startsWith('/admin/') && path !== '/verify-email' && (!isProtectedPath(path) || user);
 
   if(path.startsWith('/admin/') && user && authz?.canAccessAdmin) return <AdminShell user={user} authz={authz} path={path}>
@@ -125,18 +121,10 @@ export default function AuthApp() {
           </section>
           <DashboardSummaryCards summary={dashboard} capabilities={authz} />
         </>) : loading ? <p role="status">Loading dashboard…</p> : !error && <p className="auth-error" role="alert">Dashboard data is unavailable.</p>}
-        <section className="dashboard-account-card" aria-labelledby="dashboard-account-heading">
-          <h2 id="dashboard-account-heading">Account</h2>
-          <div className="dashboard-account-actions">
-            <a className="dashboard-action-link" href="/change-password">Change password</a>
-            <a className="dashboard-action-link" href="/confirm-password">Confirm password</a>
-            <a className="dashboard-action-link" href="/verify-email">{user.emailVerified ? 'Email verified' : 'Verify email'}</a>
-            <button className="dashboard-action-link" disabled={busy} onClick={() => void perform(async () => {
-              await api('/api/auth/logout', 'POST', {});
-              window.location.assign('/');
-            })}>{busy ? 'Signing out…' : 'Sign out'}</button>
-          </div>
-        </section>
+        <DashboardAccountCard emailVerified={user.emailVerified} busy={busy} signOut={() => void perform(async () => {
+          await api('/api/auth/logout', 'POST', {});
+          window.location.assign('/');
+        })} />
       </section>
     )}
     {path === '/admin/settings' && <>
@@ -182,22 +170,7 @@ export default function AuthApp() {
           {error && <p className="auth-error" role="alert">{error}</p>}
           {message && <p className="auth-success" role="status">{message}</p>}
           {path === '/login' && query.get('status')?.startsWith('password-') && <p className="auth-success" role="status">Your password has been updated. Sign in to continue.</p>}
-          {showForm && !loading && <form onSubmit={submit} aria-busy={busy}>
-            <fieldset disabled={busy}>
-              {['/login', '/forgot-password', '/reset-password'].includes(path) && <label className="auth-field">Email
-                <input name="email" type="email" maxLength={255} required autoComplete="username" defaultValue={path === '/reset-password' ? query.get('email') ?? '' : ''} />
-              </label>}
-              {path === '/change-password' && passwordField('currentPassword', 'Current password', true)}
-              {path !== '/forgot-password' && passwordField('password', ['/reset-password', '/change-password'].includes(path) ? 'New password' : 'Password', ['/login', '/confirm-password'].includes(path))}
-              {['/reset-password', '/change-password'].includes(path) && <>
-                <p className="auth-hint">Use at least eight characters.</p>
-                {passwordField('passwordConfirmation', 'Confirm new password')}
-              </>}
-              {path === '/login' && <div className="auth-options"><label><input type="checkbox" name="remember" /> Remember me</label><a href="/forgot-password">Forgot password?</a></div>}
-              <button className="auth-button" type="submit">{busy ? 'Please wait…' : ({ '/login': 'Sign in', '/forgot-password': 'Send reset link', '/reset-password': 'Reset password', '/confirm-password': 'Confirm password', '/change-password': 'Change password' }[path])}</button>
-            </fieldset>
-            {path === '/forgot-password' && <p className="auth-hint">Enter your account email to request a reset link.</p>}
-          </form>}
+          {showForm && !loading && <AuthForm path={path} resetEmail={query.get('email') ?? ''} busy={busy} submit={submit} />}
           {path.startsWith('/admin/') && user && authz && !authz.canAccessAdmin && <>
             <p className="auth-error" role="alert">You do not have access to CMS administration.</p>
             <button className="auth-button secondary" disabled={busy} onClick={() => void perform(async () => {

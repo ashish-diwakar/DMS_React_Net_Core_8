@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
 
 const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
-const { default: DashboardSummaryCards, isDashboardSummary } = await vite.ssrLoadModule('/src/admin/DashboardSummary.tsx');
+const { default: DashboardSummaryCards, isDashboardSummary } = await vite.ssrLoadModule('/src/components/dashboard/DashboardSummary.tsx');
 test.after(async () => { await vite.close(); });
 
 const render = (summary, capabilities) => renderToStaticMarkup(React.createElement(DashboardSummaryCards, { summary, capabilities }));

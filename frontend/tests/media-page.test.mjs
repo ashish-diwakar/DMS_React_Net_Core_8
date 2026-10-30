@@ -5,7 +5,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
 
 const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
-const { default: MediaPage, MediaCard } = await vite.ssrLoadModule('/src/admin/MediaPage.tsx');
+const { default: MediaPage } = await vite.ssrLoadModule('/src/admin/MediaPage.tsx');
+const { default: MediaCard } = await vite.ssrLoadModule('/src/components/media/MediaCard.tsx');
 test.after(async () => vite.close());
 
 test('Media Library presents aligned upload, search, filters, and an accessible list', () => {

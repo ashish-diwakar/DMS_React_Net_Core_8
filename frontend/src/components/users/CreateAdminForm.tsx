@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { api, ApiError } from '../auth/api';
+import { api, ApiError } from '../../auth/api';
 
 export type CreatedAdmin = { id: string; name: string; email: string; emailVerified: boolean; role: 'Admin' };
 type CreateAdminResponse = { message: string; user: CreatedAdmin };

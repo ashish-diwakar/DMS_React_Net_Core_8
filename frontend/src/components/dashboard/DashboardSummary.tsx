@@ -1,9 +1,11 @@
+import DashboardMetricCard from './DashboardMetricCard';
+
 type GlobalSummary = { scope: 'global'; userCount: number; roleCount: number; permissionCount: number };
 type PersonalSummary = { scope: 'personal'; primaryRole: string | null; effectivePermissionCount: number; userCount?: number };
 export type DashboardSummary = GlobalSummary | PersonalSummary;
 
 type Capabilities = { canViewUsers: boolean; canViewRoles: boolean };
-type Card = { label: string; value: number | string; description: string; href?: string; action?: string; textValue?: boolean };
+export type Card = { label: string; value: number | string; description: string; href?: string; action?: string; textValue?: boolean };
 
 const validCount = (value: unknown): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 
@@ -33,11 +35,6 @@ export default function DashboardSummaryCards({ summary, capabilities }: { summa
   ];
 
   return <section className="dashboard-metrics" aria-label="Dashboard summary">
-    {cards.map(card => <article className="dashboard-metric" key={card.label}>
-      <p className="dashboard-metric-label">{card.label}</p>
-      <strong className={card.textValue ? 'dashboard-text-value' : undefined}>{card.value}</strong>
-      <p>{card.description}</p>
-      {card.href && <a className="dashboard-view-link" href={card.href}>{card.action}</a>}
-    </article>)}
+    {cards.map(card => <DashboardMetricCard key={card.label} card={card} />)}
   </section>;
 }
