@@ -1,6 +1,6 @@
 # Diwakar Enterprise CMS — React and .NET
 
-A separate React/TypeScript frontend and ASP.NET Core 8 backend. The foundation and F001–F007 are Complete. F008 Page Sections is not implemented yet.
+A separate React/TypeScript frontend and ASP.NET Core 8 backend. The foundation and F001–F008 are Complete. F009 and later features are outside the currently approved .NET scope.
 
 ## Requirements
 
@@ -83,7 +83,9 @@ The backend uses the same MariaDB database as Laravel through MySqlConnector and
 
 Open /login and use an existing Laravel account. Login opens the protected /admin/dashboard overview for users with admin.access. The overview shows live user, web-role, and web-permission counts. F002 adds capability-gated user and role screens at /admin/users and /admin/roles, backed by the existing Laravel Spatie roles/permissions tables. F006 adds `/admin/media` for Super Admin and any Admin explicitly granted `media.manage`. It can upload JPEG, PNG, WebP, and PDF files, browse/filter/search 24 per page, edit Display Name, open assets, and delete unreferenced media. Media files are shared with Laravel through the configured public root; page-section references prevent deletion. On the Users page, only Super Admin can see Create Admin; it creates an account with the existing Admin role and its current permissions using a manually supplied initial password. No invitation email is sent. Public registration and a separate ordinary User creation flow remain unavailable. Account links provide password confirmation/change and optional email verification. Logout returns to the public home page.
 
-F007 adds `/admin/pages` for Super Admin and accounts explicitly granted `pages.manage`. It manages page titles, slugs, and Draft/Published status, with search, filtering, pagination, and section-safe deletion. Create and edit screens are `/admin/pages/create` and `/admin/pages/{id}/edit`. Page content and public rendering remain deferred.
+F007 adds `/admin/pages` for Super Admin and accounts explicitly granted `pages.manage`. It manages page titles, slugs, and Draft/Published status, with search, filtering, pagination, and section-safe deletion. Create and edit screens are `/admin/pages/create` and `/admin/pages/{id}/edit`. F007 deferred Page content to F008; public rendering remains deferred.
+
+F008 adds Page Sections at /admin/pages/{id}/sections for Super Admin and accounts explicitly granted pages.manage. It supports Hero, Text Content, and Image with Text, with create/edit, Move Up/Down, Enabled/Disabled, deletion, and a single-image picker from existing public Media. Page and Media deletion remain blocked while referenced. Public section rendering is deferred. See docs/F008_PAGE_SECTIONS.md.
 
 In Development, reset and verification messages become private .eml files under backend/.local/mail. Open the local file for the link; files are not web-accessible. They contain sensitive temporary links: never commit/share them or paste them into logs. Links are .NET-specific, expire after 60 minutes, and bind to current account/password state. No real email is sent. Outside Development, recovery/resend fails closed until a mail provider is separately approved and configured.
 
@@ -122,6 +124,17 @@ npm run build
 ~~~
 
 F007 tests add the Laravel-compatible Page table and nullable section reference only inside dss_enterprise_cms_dotnet_test. They never create, update, or delete rows in the shared application database.
+
+## F008 focused checks
+
+~~~powershell
+dotnet test tests/Diwakar.Cms.Auth.Tests/Diwakar.Cms.Auth.Tests.csproj --filter FullyQualifiedName~SectionTests
+Set-Location frontend
+node --test tests/sections.test.mjs
+npm run build
+~~~
+
+F008 tests use only the guarded dss_enterprise_cms_dotnet_test database. The shared Laravel schema and Media files remain owned by the original project.
 
 ## Workflow
 

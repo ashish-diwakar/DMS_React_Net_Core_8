@@ -7,6 +7,7 @@ using Diwakar.Cms.Api.Authorization;
 using Diwakar.Cms.Api.Settings;
 using Diwakar.Cms.Api.Media;
 using Diwakar.Cms.Api.Pages;
+using Diwakar.Cms.Api.Sections;
 
 namespace Diwakar.Cms.Api.Authentication;
 
@@ -157,6 +158,7 @@ public static class AuthEndpoints
         });
         app.MapMedia(admin);
         admin.MapPages();
+        admin.MapSections();
         admin.MapGet("/dashboard", async (HttpContext context, RbacStore rbac, CancellationToken ct) =>
             Results.Ok(await rbac.DashboardAsync((RbacSnapshot)context.Items[typeof(RbacSnapshot)]!, ct))).RequireAuthorization();
         admin.MapGet("/settings", async (HttpContext context, WebsiteSettingsStore settings, CancellationToken ct) =>

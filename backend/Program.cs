@@ -49,6 +49,12 @@ app.Use(async (context, next) =>
         var size = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
         if (size is { IsReadOnly: false }) size.MaxRequestBodySize = Diwakar.Cms.Api.Media.MediaEndpoints.UploadBodyLimit;
     }
+    if ((HttpMethods.IsPost(context.Request.Method) || HttpMethods.IsPatch(context.Request.Method))
+        && System.Text.RegularExpressions.Regex.IsMatch(context.Request.Path.Value ?? "", @"^/api/admin/pages/[1-9][0-9]*/sections(?:/[1-9][0-9]*)?$"))
+    {
+        var size = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
+        if (size is { IsReadOnly: false }) size.MaxRequestBodySize = 65536;
+    }
     await next(context);
 });
 app.UseRateLimiter();

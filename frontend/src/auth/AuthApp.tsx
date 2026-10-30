@@ -8,6 +8,8 @@ import WebsiteSettingsPage from '../admin/WebsiteSettingsPage';
 import MediaPage from '../admin/MediaPage';
 import PageIndex from '../admin/pages/PageIndex';
 import PageEditor from '../admin/pages/PageEditor';
+import SectionIndex from '../admin/sections/SectionIndex';
+import SectionEditor from '../admin/sections/SectionEditor';
 import DashboardSummaryCards, { isDashboardSummary } from '../admin/DashboardSummary';
 import type { DashboardSummary } from '../admin/DashboardSummary';
 
@@ -20,12 +22,18 @@ const titles: Record<string, string> = {
 };
 const protectedPaths = ['/confirm-password', '/change-password', '/verify-email', '/admin/dashboard','/admin/users','/admin/roles','/admin/settings','/admin/media'];
 const pageEditPattern = /^\/admin\/pages\/([1-9]\d*)\/edit$/;
-const isProtectedPath = (path: string) => protectedPaths.includes(path) || path === '/admin/pages' || path === '/admin/pages/create' || pageEditPattern.test(path);
+const sectionListPattern = /^\/admin\/pages\/([1-9]\d*)\/sections$/;
+const sectionCreatePattern = /^\/admin\/pages\/([1-9]\d*)\/sections\/create$/;
+const sectionEditPattern = /^\/admin\/pages\/([1-9]\d*)\/sections\/([1-9]\d*)\/edit$/;
+const isProtectedPath = (path: string) => protectedPaths.includes(path) || path === '/admin/pages' || path === '/admin/pages/create' || pageEditPattern.test(path) || sectionListPattern.test(path) || sectionCreatePattern.test(path) || sectionEditPattern.test(path);
 
 export default function AuthApp() {
   const path = window.location.pathname;
   const query = new URLSearchParams(window.location.search);
   const pageEditId = pageEditPattern.exec(path)?.[1];
+  const sectionListId = sectionListPattern.exec(path)?.[1];
+  const sectionCreateId = sectionCreatePattern.exec(path)?.[1];
+  const sectionEditMatch = sectionEditPattern.exec(path);
   const [user, setUser] = useState<User | null>(null);
   const [authz,setAuthz]=useState<Authz|null>(null);
   const [dashboard,setDashboard]=useState<DashboardSummary|null>(null);
@@ -33,10 +41,10 @@ export default function AuthApp() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const known = path in titles || !!pageEditId;
+  const known = path in titles || !!pageEditId || !!sectionListId || !!sectionCreateId || !!sectionEditMatch;
 
   useEffect(() => {
-    document.title = (titles[path] ?? (pageEditId ? 'Edit Page' : 'Page unavailable')) + ' | Diwakar Enterprise CMS';
+    document.title = (titles[path] ?? (pageEditId ? 'Edit Page' : sectionListId ? 'Page Sections' : sectionCreateId ? 'Add Section' : sectionEditMatch ? 'Edit Section' : 'Page unavailable')) + ' | Diwakar Enterprise CMS';
     if (!isProtectedPath(path)) return;
     const controller = new AbortController();
     let dashboardRequested = false;
@@ -142,6 +150,14 @@ export default function AuthApp() {
     {(path === '/admin/pages/create' || pageEditId) && <>
       <AdminPageHeading title={pageEditId ? 'Edit Page' : 'Create Page'} description="Set the page identity and publication status." />
       {(authz.isSuperAdmin || authz.permissions.includes('pages.manage')) ? <PageEditor id={pageEditId} /> : <p className="auth-error" role="alert">You do not have permission to manage pages.</p>}
+    </>}
+    {sectionListId && <>
+      <AdminPageHeading title="Page Sections" description="Arrange structured content. Public rendering remains deferred." />
+      {(authz.isSuperAdmin || authz.permissions.includes('pages.manage')) ? <SectionIndex pageId={sectionListId} /> : <p className="auth-error" role="alert">You do not have permission to manage pages.</p>}
+    </>}
+    {(sectionCreateId || sectionEditMatch) && <>
+      <AdminPageHeading title={sectionEditMatch ? 'Edit Section' : 'Add Section'} description="Arrange structured content for this Page." />
+      {(authz.isSuperAdmin || authz.permissions.includes('pages.manage')) ? <SectionEditor pageId={sectionCreateId || sectionEditMatch![1]} sectionId={sectionEditMatch?.[2]} /> : <p className="auth-error" role="alert">You do not have permission to manage pages.</p>}
     </>}
     {path === '/admin/media' && <>
       <AdminPageHeading title="Media Library" description="Upload and manage public website assets." />

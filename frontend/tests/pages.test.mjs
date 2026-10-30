@@ -28,7 +28,7 @@ test('Page form exposes only identity fields, safe slug guidance and save action
   assert.equal(suggestSlug('Crème Brûlée'), 'creme-brulee');
 });
 
-test('Page table displays the approved columns, badges and fitted F007 actions', () => {
+test('Page table displays the approved columns, badges and fitted Page actions', () => {
   const item = { id: '9', title: 'Contact Us', slug: 'contact-us', status: 'published',
     createdAt: '2026-10-16T19:27:00', updatedAt: '2026-10-16T19:27:00' };
   const html = renderToStaticMarkup(React.createElement(PageTable, { items: [item], onDelete: () => {} }));
@@ -39,7 +39,7 @@ test('Page table displays the approved columns, badges and fitted F007 actions',
   assert.match(html, /Published/);
   assert.match(html, /href="\/admin\/pages\/9\/edit"/);
   assert.match(html, /Delete/);
-  assert.doesNotMatch(html, /Manage Sections/);
+  assert.match(html, /Manage Sections/);
 });
 
 test('Delete dialog keeps selected title escaped and offers cancel and confirmation', () => {

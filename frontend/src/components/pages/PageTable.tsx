@@ -22,6 +22,7 @@ export default function PageTable({ items, onDelete }: { items: PageItem[]; onDe
       <td data-label="Status"><PageStatusBadge status={page.status} /></td>
       <td data-label="Updated">{updatedAt(page.updatedAt)}</td>
       <td data-label="Actions"><div className="page-row-actions">
+        <a className="page-secondary-button" href={'/admin/pages/' + page.id + '/sections'}>Manage Sections<span className="sr-only"> {page.title}</span></a>
         <a className="page-secondary-button" href={'/admin/pages/' + page.id + '/edit'}>Edit<span className="sr-only"> {page.title}</span></a>
         <button className="page-delete-button" type="button" onClick={() => onDelete(page)}>Delete<span className="sr-only"> {page.title}</span></button>
       </div></td>

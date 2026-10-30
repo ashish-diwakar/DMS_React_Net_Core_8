@@ -50,7 +50,7 @@ export async function apiForm<T>(path: string, form: FormData): Promise<T> {
 export function safeReturnPath(value: string | null): string {
   if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) return '/admin/dashboard';
   const url = new URL(value, window.location.origin);
-  const pagePath = url.pathname === '/admin/pages' || url.pathname === '/admin/pages/create' || /^\/admin\/pages\/[1-9]\d*\/edit$/.test(url.pathname);
+  const pagePath = url.pathname === '/admin/pages' || url.pathname === '/admin/pages/create' || /^\/admin\/pages\/[1-9]\d*\/edit$/.test(url.pathname) || /^\/admin\/pages\/[1-9]\d*\/sections(?:\/create|\/[1-9]\d*\/edit)?$/.test(url.pathname);
   return url.origin === window.location.origin && (['/admin/dashboard','/admin/users','/admin/roles','/admin/settings','/admin/media', '/confirm-password', '/change-password', '/verify-email'].includes(url.pathname) || pagePath)
     ? url.pathname + url.search : '/admin/dashboard';
 }

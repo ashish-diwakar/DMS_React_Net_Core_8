@@ -84,6 +84,22 @@ public sealed class AuthFixture : IAsyncLifetime
         if (Convert.ToInt64(pageColumn) == 0) await ExecuteAsync("ALTER TABLE page_sections ADD COLUMN page_id BIGINT UNSIGNED NULL");
         var pageForeignKey = await ScalarAsync("SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema=DATABASE() AND table_name='page_sections' AND constraint_name='test_page_sections_page_fk'");
         if (Convert.ToInt64(pageForeignKey) == 0) await ExecuteAsync("ALTER TABLE page_sections ADD CONSTRAINT test_page_sections_page_fk FOREIGN KEY(page_id) REFERENCES pages(id) ON DELETE RESTRICT");
+        // Additive schema updates are confined to the dedicated .NET test database.
+        var sectionColumns = new (string Name, string Definition)[]
+        {
+            ("type", "VARCHAR(20) NULL"), ("sort_order", "INT UNSIGNED NULL"),
+            ("is_enabled", "BOOLEAN NULL"), ("heading", "VARCHAR(200) NULL"),
+            ("body", "TEXT NULL"), ("image_alt", "VARCHAR(255) NULL"),
+            ("button_label", "VARCHAR(80) NULL"), ("button_url", "VARCHAR(2048) NULL"),
+            ("created_at", "TIMESTAMP NULL"), ("updated_at", "TIMESTAMP NULL")
+        };
+        foreach (var (name, definition) in sectionColumns)
+        {
+            var exists = await ScalarAsync("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='page_sections' AND column_name=@name", ("@name", name));
+            if (Convert.ToInt64(exists) == 0) await ExecuteAsync("ALTER TABLE page_sections ADD COLUMN " + name + " " + definition);
+        }
+        var orderIndex = await ScalarAsync("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='page_sections' AND index_name='test_page_sections_order'");
+        if (Convert.ToInt64(orderIndex) == 0) await ExecuteAsync("CREATE INDEX test_page_sections_order ON page_sections(page_id,sort_order,id)");
         foreach(var name in Diwakar.Cms.Api.Authorization.RbacStore.ManagedPermissions) await ExecuteAsync("INSERT IGNORE INTO permissions(name,guard_name) VALUES(@name,'web')",("@name",name));
         await ExecuteAsync("INSERT IGNORE INTO roles(name,guard_name) VALUES('Admin','web'),('Super Admin','web')");
         await ExecuteAsync("INSERT IGNORE INTO role_has_permissions(permission_id,role_id) SELECT p.id,r.id FROM permissions p JOIN roles r ON r.name='Admin' AND r.guard_name='web' WHERE p.guard_name='web' AND p.name IN ('admin.access','users.view','roles.view')");

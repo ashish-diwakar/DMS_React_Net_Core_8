@@ -46,6 +46,7 @@ export default function PageEditor({ id }: { id?: string }) {
   if (error && !creating && draft.title === '') return <p className="settings-notice settings-notice-error" role="alert">{error}</p>;
   return <div className="page-editor">
     {error && <p className="settings-notice settings-notice-error" role="alert">{error}</p>}
+    {id && <div className="section-editor-link"><a className="page-secondary-button" href={'/admin/pages/' + id + '/sections'}>Manage Sections</a></div>}
     <PageForm draft={draft} creating={creating} errors={errors} busy={busy} onTitle={titleChanged} onSlug={slugChanged}
       onStatus={value => setDraft(current => ({ ...current, status: value }))} onSubmit={event => void save(event)} />
   </div>;
