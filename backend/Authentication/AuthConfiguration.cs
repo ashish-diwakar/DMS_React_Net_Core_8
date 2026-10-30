@@ -35,6 +35,7 @@ public static class AuthConfiguration
         builder.Services.AddScoped<SharedUserStore>();
         builder.Services.AddScoped<Diwakar.Cms.Api.Settings.WebsiteSettingsStore>();
         builder.Services.AddScoped<Diwakar.Cms.Api.Media.MediaStore>();
+        builder.Services.AddScoped<Diwakar.Cms.Api.Pages.PageStore>();
         builder.Services.AddScoped<Diwakar.Cms.Api.Authorization.RbacStore>();
         builder.Services.AddScoped<Diwakar.Cms.Api.Authorization.RbacProvisioner>();
         builder.Services.AddIdentityCore<CmsUser>().AddUserStore<SharedUserStore>().AddDefaultTokenProviders();

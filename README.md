@@ -1,6 +1,6 @@
 # Diwakar Enterprise CMS — React and .NET
 
-A separate React/TypeScript frontend and ASP.NET Core 8 backend. The foundation and F001–F006 are Complete. F007–F008 are not implemented yet.
+A separate React/TypeScript frontend and ASP.NET Core 8 backend. The foundation and F001–F007 are Complete. F008 Page Sections is not implemented yet.
 
 ## Requirements
 
@@ -83,6 +83,8 @@ The backend uses the same MariaDB database as Laravel through MySqlConnector and
 
 Open /login and use an existing Laravel account. Login opens the protected /admin/dashboard overview for users with admin.access. The overview shows live user, web-role, and web-permission counts. F002 adds capability-gated user and role screens at /admin/users and /admin/roles, backed by the existing Laravel Spatie roles/permissions tables. F006 adds `/admin/media` for Super Admin and any Admin explicitly granted `media.manage`. It can upload JPEG, PNG, WebP, and PDF files, browse/filter/search 24 per page, edit Display Name, open assets, and delete unreferenced media. Media files are shared with Laravel through the configured public root; page-section references prevent deletion. On the Users page, only Super Admin can see Create Admin; it creates an account with the existing Admin role and its current permissions using a manually supplied initial password. No invitation email is sent. Public registration and a separate ordinary User creation flow remain unavailable. Account links provide password confirmation/change and optional email verification. Logout returns to the public home page.
 
+F007 adds `/admin/pages` for Super Admin and accounts explicitly granted `pages.manage`. It manages page titles, slugs, and Draft/Published status, with search, filtering, pagination, and section-safe deletion. Create and edit screens are `/admin/pages/create` and `/admin/pages/{id}/edit`. Page content and public rendering remain deferred.
+
 In Development, reset and verification messages become private .eml files under backend/.local/mail. Open the local file for the link; files are not web-accessible. They contain sensitive temporary links: never commit/share them or paste them into logs. Links are .NET-specific, expire after 60 minutes, and bind to current account/password state. No real email is sent. Outside Development, recovery/resend fails closed until a mail provider is separately approved and configured.
 
 Ordinary authentication uses a browser-session cookie and a 120-minute ticket. Remember me persists a cookie for the existing Laravel duration of 400 days. Sessions are separate; a shared password change invalidates stale .NET cookies. Password changes also rotate Laravel's remember_token; existing Laravel sessions and independently managed reset links follow Laravel's own behavior. See docs/SHARED_DATABASE.md.
@@ -109,6 +111,17 @@ node --test tests/media-page.test.mjs
 node --test tests/admin-shell.test.mjs
 npm run build
 ```
+
+## F007 focused checks
+
+~~~powershell
+dotnet test tests/Diwakar.Cms.Auth.Tests/Diwakar.Cms.Auth.Tests.csproj --filter FullyQualifiedName~PageTests
+Set-Location frontend
+node --test --test-concurrency=1 tests/pages.test.mjs tests/admin-shell.test.mjs
+npm run build
+~~~
+
+F007 tests add the Laravel-compatible Page table and nullable section reference only inside dss_enterprise_cms_dotnet_test. They never create, update, or delete rows in the shared application database.
 
 ## Workflow
 

@@ -264,3 +264,74 @@ fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 @media (max-width: 850px) { .media-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 700px) { .media-filter-form { grid-template-columns: 1fr; } .media-upload-form { flex-direction: column; } .media-upload-form input[type="file"] { width: 100%; } .media-toolbar { padding: var(--space-5); } }
 @media (max-width: 620px) { .media-grid { grid-template-columns: 1fr; } }
+/* F007 Page Management uses the admin shell's shared type, spacing, and surfaces. */
+.page-index { display: grid; gap: var(--space-6); }
+.page-create-row { display: flex; justify-content: flex-end; }
+.page-primary-button, .page-secondary-button, .page-delete-button, .page-danger-button {
+  display: inline-flex; min-height: 40px; align-items: center; justify-content: center; padding: 8px 14px;
+  border: 1px solid transparent; border-radius: 6px; font: inherit; font-size: 13px; font-weight: 600;
+  line-height: 1.35; text-align: center; text-decoration: none; cursor: pointer;
+}
+.page-primary-button { background: var(--navy); color: #fff; }
+.page-primary-button:hover, .page-danger-button:hover { background: #1e293b; }
+.page-secondary-button { border-color: #cbd5e1; background: #fff; color: #26354c; }
+.page-secondary-button:hover { background: #f8fafc; }
+.page-delete-button { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
+.page-delete-button:hover { background: #fee2e2; }
+.page-danger-button { background: #dc2626; color: #fff; }
+.page-danger-button:hover { background: #b91c1c; }
+.page-primary-button:disabled, .page-secondary-button:disabled, .page-delete-button:disabled, .page-danger-button:disabled { opacity: .55; cursor: not-allowed; }
+.page-filter-form, .page-table-wrap, .page-form { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; box-shadow: 0 1px 2px #1720330a; }
+.page-filter-form { display: grid; grid-template-columns: minmax(0, 1fr) 116px auto; align-items: end; gap: var(--space-4); padding: var(--space-5); }
+.page-filter-field, .page-field { display: grid; min-width: 0; gap: var(--space-2); color: #34445d; font-size: 13px; font-weight: 600; }
+.page-filter-field input, .page-filter-field select, .page-field input, .page-field select {
+  width: 100%; min-width: 0; min-height: 42px; padding: 9px 12px; border: 1px solid #cbd5e1;
+  border-radius: 6px; background: #fff; color: var(--ink); font: inherit; font-weight: 400;
+}
+.page-filter-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.page-table-wrap { min-width: 0; overflow: hidden; }
+.page-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.page-table th { padding: 14px 16px; background: #f8fafc; color: #64748b; font-size: 11px; font-weight: 600; letter-spacing: .03em; text-align: left; text-transform: uppercase; }
+.page-table th:nth-child(1) { width: 22%; } .page-table th:nth-child(2) { width: 21%; }
+.page-table th:nth-child(3) { width: 16%; } .page-table th:nth-child(4) { width: 20%; }
+.page-table th:nth-child(5) { width: 21%; }
+.page-table td { padding: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; vertical-align: middle; overflow-wrap: anywhere; }
+.page-table-title { color: var(--navy) !important; font-weight: 600; }
+.page-table-slug { overflow-wrap: anywhere; }
+.page-table-empty { padding: var(--space-6) !important; }
+.page-status { display: inline-flex; padding: 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.page-status-draft { background: #f1f5f9; color: #475569; }
+.page-status-published { background: #ecfdf5; color: #047857; }
+.page-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.page-row-actions .page-secondary-button, .page-row-actions .page-delete-button { flex: 0 0 auto; }
+.page-editor { max-width: 960px; }
+.page-form { display: grid; gap: var(--space-6); padding: var(--space-6); }
+.page-form > p { margin: 0; color: var(--muted); font-size: 13px; }
+.page-field small { color: var(--muted); font-size: 12px; font-weight: 400; line-height: 1.5; }
+.page-field input[aria-invalid="true"], .page-field select[aria-invalid="true"] { border-color: #b42318; }
+.page-field-error { color: #b42318; font-size: 12px; font-weight: 400; }
+.page-form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding-top: var(--space-6); border-top: 1px solid var(--line); }
+.page-delete-dialog { width: min(calc(100% - 32px), 500px); max-height: calc(100% - 32px); margin: auto; padding: var(--space-6); border: 0; border-radius: 10px; color: var(--ink); box-shadow: 0 20px 55px #0f172a40; }
+.page-delete-dialog::backdrop { background: #02081999; }
+.page-delete-dialog h2 { margin: 0; font-size: 18px; }
+.page-delete-dialog p { margin: var(--space-3) 0 0; color: var(--muted); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.page-delete-dialog .settings-notice { margin-top: var(--space-4); }
+.page-delete-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-3); margin-top: var(--space-6); padding: var(--space-5) var(--space-2) var(--space-2); border-top: 1px solid var(--line); }
+@media (max-width: 820px) {
+  .page-filter-form { grid-template-columns: minmax(0, 1fr) 130px; }
+  .page-filter-actions { grid-column: 1 / -1; }
+  .page-table-wrap { overflow: visible; border: 0; background: none; box-shadow: none; }
+  .page-table, .page-table tbody, .page-table tr, .page-table td { display: block; width: 100%; }
+  .page-table thead { display: none; }
+  .page-table tbody { display: grid; gap: var(--space-4); }
+  .page-table tr { padding: var(--space-4); border: 1px solid var(--line); border-radius: var(--radius); background: #fff; box-shadow: 0 1px 2px #1720330a; }
+  .page-table td { padding: var(--space-2) 0; border: 0; }
+  .page-table td:not(.page-table-empty)::before { content: attr(data-label) ": "; color: #64748b; font-size: 12px; font-weight: 500; }
+  .page-table td:last-child::before { display: none; }
+  .page-row-actions { padding-top: var(--space-2); border-top: 1px solid var(--line); }
+}
+@media (max-width: 560px) {
+  .page-filter-form { grid-template-columns: 1fr; padding: var(--space-4); }
+  .page-filter-actions { grid-column: auto; }
+  .page-form { padding: var(--space-5); }
+}

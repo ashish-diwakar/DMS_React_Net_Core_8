@@ -13,10 +13,6 @@ type Authz = {
   canManageSettings: boolean;
 };
 
-const laterModules = [
-  { label: 'Pages', permission: 'pages.manage' },
-];
-
 export default function AdminShell({ user, authz, path, children }: {
   user: User;
   authz: Authz;
@@ -119,11 +115,7 @@ export default function AdminShell({ user, authz, path, children }: {
         {authz.canViewRoles && navLink('Roles', '/admin/roles', path === '/admin/roles')}
         {authz.canManageSettings && navLink('Settings', '/admin/settings', path === '/admin/settings')}
         {(authz.isSuperAdmin || authz.permissions.includes('media.manage')) && navLink('Media Library', '/admin/media', path === '/admin/media')}
-        {laterModules.filter(item => authz.isSuperAdmin || authz.permissions.includes(item.permission)).map(item =>
-          <span key={item.label} className="admin-nav-link disabled" aria-disabled="true" title="This module is not available in F002">
-            <span className="admin-nav-dot" aria-hidden="true" />{item.label}
-          </span>
-        )}
+        {(authz.isSuperAdmin || authz.permissions.includes('pages.manage')) && navLink('Pages', '/admin/pages', path.startsWith('/admin/pages'))}
       </nav>
     </aside>
     {mobileOpen && <button className="admin-backdrop" type="button" aria-label="Close navigation" tabIndex={-1} onClick={closeMobileNavigation} />}

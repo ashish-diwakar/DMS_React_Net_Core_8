@@ -6,6 +6,8 @@ import AdminShell from '../admin/AdminShell';
 import AdminPageHeading from '../admin/AdminPageHeading';
 import WebsiteSettingsPage from '../admin/WebsiteSettingsPage';
 import MediaPage from '../admin/MediaPage';
+import PageIndex from '../admin/pages/PageIndex';
+import PageEditor from '../admin/pages/PageEditor';
 import DashboardSummaryCards, { isDashboardSummary } from '../admin/DashboardSummary';
 import type { DashboardSummary } from '../admin/DashboardSummary';
 
@@ -14,25 +16,28 @@ type Authz = { roles:string[]; permissions:string[]; isSuperAdmin:boolean; canAc
 const titles: Record<string, string> = {
   '/login': 'Welcome back.', '/forgot-password': 'Forgot your password?', '/reset-password': 'Choose a new password.',
   '/confirm-password': 'Confirm it’s you.', '/change-password': 'Change your password.', '/verify-email': 'Verify your email.',
-  '/admin/dashboard': 'Dashboard', '/admin/users':'Users', '/admin/roles':'Roles and permissions', '/admin/settings':'Website Settings', '/admin/media':'Media Library',
+  '/admin/dashboard': 'Dashboard', '/admin/users':'Users', '/admin/roles':'Roles and permissions', '/admin/settings':'Website Settings', '/admin/media':'Media Library', '/admin/pages':'Pages', '/admin/pages/create':'Create Page',
 };
 const protectedPaths = ['/confirm-password', '/change-password', '/verify-email', '/admin/dashboard','/admin/users','/admin/roles','/admin/settings','/admin/media'];
+const pageEditPattern = /^\/admin\/pages\/([1-9]\d*)\/edit$/;
+const isProtectedPath = (path: string) => protectedPaths.includes(path) || path === '/admin/pages' || path === '/admin/pages/create' || pageEditPattern.test(path);
 
 export default function AuthApp() {
   const path = window.location.pathname;
   const query = new URLSearchParams(window.location.search);
+  const pageEditId = pageEditPattern.exec(path)?.[1];
   const [user, setUser] = useState<User | null>(null);
   const [authz,setAuthz]=useState<Authz|null>(null);
   const [dashboard,setDashboard]=useState<DashboardSummary|null>(null);
-  const [loading, setLoading] = useState(protectedPaths.includes(path));
+  const [loading, setLoading] = useState(isProtectedPath(path));
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const known = path in titles;
+  const known = path in titles || !!pageEditId;
 
   useEffect(() => {
-    document.title = `${titles[path] ?? 'Page unavailable'} | Diwakar Enterprise CMS`;
-    if (!protectedPaths.includes(path)) return;
+    document.title = (titles[path] ?? (pageEditId ? 'Edit Page' : 'Page unavailable')) + ' | Diwakar Enterprise CMS';
+    if (!isProtectedPath(path)) return;
     const controller = new AbortController();
     let dashboardRequested = false;
     void api<User>('/api/auth/me', 'GET', undefined, controller.signal).then(async value => {
@@ -61,7 +66,7 @@ export default function AuthApp() {
     setBusy(true); setMessage(''); setError('');
     try { await action(); }
     catch (failure) {
-      if (failure instanceof ApiError && failure.status === 401 && protectedPaths.includes(path)) {
+      if (failure instanceof ApiError && failure.status === 401 && isProtectedPath(path)) {
         window.location.replace('/login?returnUrl=' + encodeURIComponent(safeReturnPath(path + window.location.search)));
       } else setError(failure instanceof Error && failure instanceof ApiError ? failure.message : 'The service could not be reached. Please try again.');
     } finally { setBusy(false); }
@@ -98,7 +103,7 @@ export default function AuthApp() {
     </label>
   );
 
-  const showForm = known && !path.startsWith('/admin/') && path !== '/verify-email' && (!protectedPaths.includes(path) || user);
+  const showForm = known && !path.startsWith('/admin/') && path !== '/verify-email' && (!isProtectedPath(path) || user);
 
   if(path.startsWith('/admin/') && user && authz?.canAccessAdmin) return <AdminShell user={user} authz={authz} path={path}>
     {error&&<p className="auth-error" role="alert">{error}</p>}{message&&<p className="auth-success" role="status">{message}</p>}
@@ -129,6 +134,14 @@ export default function AuthApp() {
     {path === '/admin/settings' && <>
       <AdminPageHeading title="Website Settings" description="Manage public website information used by the CMS." />
       {authz.canManageSettings ? <WebsiteSettingsPage /> : <p className="auth-error" role="alert">You do not have permission to manage settings.</p>}
+    </>}
+    {path === '/admin/pages' && <>
+      <AdminPageHeading title="Pages" description="Manage page identity and publication status. Content and public rendering are deferred." />
+      {(authz.isSuperAdmin || authz.permissions.includes('pages.manage')) ? <PageIndex /> : <p className="auth-error" role="alert">You do not have permission to manage pages.</p>}
+    </>}
+    {(path === '/admin/pages/create' || pageEditId) && <>
+      <AdminPageHeading title={pageEditId ? 'Edit Page' : 'Create Page'} description="Set the page identity and publication status." />
+      {(authz.isSuperAdmin || authz.permissions.includes('pages.manage')) ? <PageEditor id={pageEditId} /> : <p className="auth-error" role="alert">You do not have permission to manage pages.</p>}
     </>}
     {path === '/admin/media' && <>
       <AdminPageHeading title="Media Library" description="Upload and manage public website assets." />

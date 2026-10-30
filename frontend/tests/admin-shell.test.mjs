@@ -58,3 +58,11 @@ test('Media Library is a route only when media management is granted', () => {
   const denied = render(base, '/admin/media');
   assert.doesNotMatch(denied, /href="\/admin\/media"/);
 });
+
+test('Pages becomes a link only for Super Admin or pages.manage, including edit routes', () => {
+  const superAdmin = render({ ...base, isSuperAdmin: true }, '/admin/pages');
+  assert.match(superAdmin, /href="\/admin\/pages"[^>]*aria-current="page"/);
+  const granted = render({ ...base, permissions: ['pages.manage'] }, '/admin/pages/9/edit');
+  assert.match(granted, /href="\/admin\/pages"[^>]*aria-current="page"/);
+  assert.doesNotMatch(render(base, '/admin/pages'), /href="\/admin\/pages"/);
+});

@@ -78,7 +78,12 @@ public sealed class AuthFixture : IAsyncLifetime
             """);
         Directory.CreateDirectory(MediaDirectory);
         await ExecuteAsync("CREATE TABLE IF NOT EXISTS media (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, original_name VARCHAR(255) NOT NULL, title VARCHAR(255) NULL, disk VARCHAR(50) NOT NULL, path VARCHAR(255) NOT NULL, mime_type VARCHAR(100) NOT NULL, size BIGINT UNSIGNED NOT NULL, width INT UNSIGNED NULL, height INT UNSIGNED NULL, created_at TIMESTAMP NULL, updated_at TIMESTAMP NULL, INDEX(created_at,id))");
-        await ExecuteAsync("CREATE TABLE IF NOT EXISTS page_sections (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, media_id BIGINT UNSIGNED NULL, CONSTRAINT test_page_sections_media_fk FOREIGN KEY(media_id) REFERENCES media(id) ON DELETE RESTRICT)");
+        await ExecuteAsync("CREATE TABLE IF NOT EXISTS pages (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, title VARCHAR(200) NOT NULL, slug VARCHAR(150) NOT NULL UNIQUE, status VARCHAR(20) NOT NULL DEFAULT 'draft', created_at TIMESTAMP NULL, updated_at TIMESTAMP NULL)");
+        await ExecuteAsync("CREATE TABLE IF NOT EXISTS page_sections (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, media_id BIGINT UNSIGNED NULL, page_id BIGINT UNSIGNED NULL, CONSTRAINT test_page_sections_media_fk FOREIGN KEY(media_id) REFERENCES media(id) ON DELETE RESTRICT, CONSTRAINT test_page_sections_page_fk FOREIGN KEY(page_id) REFERENCES pages(id) ON DELETE RESTRICT)");
+        var pageColumn = await ScalarAsync("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='page_sections' AND column_name='page_id'");
+        if (Convert.ToInt64(pageColumn) == 0) await ExecuteAsync("ALTER TABLE page_sections ADD COLUMN page_id BIGINT UNSIGNED NULL");
+        var pageForeignKey = await ScalarAsync("SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema=DATABASE() AND table_name='page_sections' AND constraint_name='test_page_sections_page_fk'");
+        if (Convert.ToInt64(pageForeignKey) == 0) await ExecuteAsync("ALTER TABLE page_sections ADD CONSTRAINT test_page_sections_page_fk FOREIGN KEY(page_id) REFERENCES pages(id) ON DELETE RESTRICT");
         foreach(var name in Diwakar.Cms.Api.Authorization.RbacStore.ManagedPermissions) await ExecuteAsync("INSERT IGNORE INTO permissions(name,guard_name) VALUES(@name,'web')",("@name",name));
         await ExecuteAsync("INSERT IGNORE INTO roles(name,guard_name) VALUES('Admin','web'),('Super Admin','web')");
         await ExecuteAsync("INSERT IGNORE INTO role_has_permissions(permission_id,role_id) SELECT p.id,r.id FROM permissions p JOIN roles r ON r.name='Admin' AND r.guard_name='web' WHERE p.guard_name='web' AND p.name IN ('admin.access','users.view','roles.view')");
@@ -107,6 +112,7 @@ public sealed class AuthFixture : IAsyncLifetime
         await ExecuteAsync("DELETE FROM website_settings");
         await ExecuteAsync("DELETE FROM page_sections");
         await ExecuteAsync("DELETE FROM media");
+        await ExecuteAsync("DELETE FROM pages");
         await ExecuteAsync("DELETE rp FROM role_has_permissions rp JOIN roles r ON r.id=rp.role_id WHERE r.name='Admin' AND r.guard_name='web'");
         await ExecuteAsync("INSERT IGNORE INTO role_has_permissions(permission_id,role_id) SELECT p.id,r.id FROM permissions p JOIN roles r ON r.name='Admin' AND r.guard_name='web' WHERE p.guard_name='web' AND p.name IN ('admin.access','users.view','roles.view')");
     }
